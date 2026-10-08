@@ -61,3 +61,13 @@ A human-approved, detailed Phase-1 backend implementation plan already exists at
 **Why this is a judgment call worth flagging, not a silent one:** This changes "spec 009's data layer" (as spec 008's text names it) into "whatever spec 010/010b end up building, injected." If spec 013 (which wires the API route) was written assuming `runHarness` imports the DB layer directly rather than accepting it as a parameter, that's a contract mismatch to resolve when building spec 013 — noted here so it isn't missed.
 
 **Flagged for:** Whoever builds/reviews spec 013 (API routes) — confirm `runHarness`'s actual signature (`RunHarnessDependencies.persistRun`) against spec 013's expectations before wiring the route handler.
+
+---
+
+### [GAP] Spec 010's manual Supabase round-trip check not run — no live Supabase project in this build environment
+
+**What:** Spec 010's oracle names a second, non-CI-blocking check: "after spec 009's migration is applied to a real Supabase project, one `db.runs.create()` + `db.runs.getOwned()` round-trip succeeds against the real database." No real Supabase project is reachable in this build environment (same root cause as spec 009's RLS gap — no `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` configured, and `.env` is never read by this agent per the SECRETS discipline).
+
+**What was verified instead:** The CI-blocking half of spec 010's oracle (`tests/unit/dbRuns.test.ts`, mocked Supabase client, 6/6 green) fully passes, including the call-argument-level assertions that `getOwned`/`list`/`countInLastHour` all filter on `user_id`. The query shapes were also cross-checked by hand against the real column names confirmed live via spec 009's manual `psql \d runs` check (same column names: `id`, `user_id`, `issue_url`, `status`, etc.) — so the query strings are known-correct against the real schema, even without a live round-trip through Supabase's own API layer specifically.
+
+**What would close this gap:** Once `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` exist for a real project with spec 009's migration applied, run one `db.runs.create()` followed by `db.runs.getOwned()` manually and confirm the round-trip, per spec 010's own instruction that this check is logged in the completion report, not a CI gate.
