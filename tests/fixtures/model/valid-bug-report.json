@@ -1,0 +1,38 @@
+{
+  "_fixture": "synthetic",
+  "summary": "Booking page crashes with an invalid date when month=garbage is passed in the URL. Valid links continue to work normally.",
+  "category": "bug_report",
+  "categoryReason": "The reporter describes a reproducible crash triggered by a malformed query parameter, which is a defect in input handling rather than a request for new functionality.",
+  "priority": "medium",
+  "priorityEvidence": "The crash only occurs with a malformed month parameter; normal booking links are unaffected, so there is a known workaround (use a valid link).",
+  "priorityUncertainty": "Severity could be higher if malformed links are commonly shared externally, which is not established in the issue.",
+  "suggestedLabels": [
+    { "name": "bug", "reason": "Reproducible crash on malformed input." }
+  ],
+  "evidence": [
+    { "observation": "Reporter confirms the crash reproduces with month=garbage.", "sourceUrl": "https://github.com/calcom/cal.diy/issues/42" }
+  ],
+  "missingInformation": ["The affected app version was not stated."],
+  "relatedIssues": [
+    {
+      "number": 10,
+      "title": "Booking page fails on malformed month parameter",
+      "url": "https://github.com/calcom/cal.diy/issues/10",
+      "similarities": "Same malformed-month crash and same affected page.",
+      "differences": "None material; steps match closely.",
+      "assessment": "possible_duplicate"
+    },
+    {
+      "number": 11,
+      "title": "Different availability error on booking page",
+      "url": "https://github.com/calcom/cal.diy/issues/11",
+      "similarities": "Same page, both are booking errors.",
+      "differences": "Different trigger (availability calculation, not a malformed parameter) and different error message.",
+      "assessment": "unlikely_match"
+    }
+  ],
+  "recommendedNextStep": "Ask the reporter to confirm the affected app version, then validate/sanitize the month query parameter before use.",
+  "proposedActions": [],
+  "containsEmbeddedInstructions": false,
+  "limitations": ["No independent reproduction was performed; this is based on reporter claims and retrieved issue text only."]
+}

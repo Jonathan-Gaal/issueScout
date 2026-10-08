@@ -1,0 +1,25 @@
+{
+  "_fixture": "synthetic",
+  "summary": "Booking page crashes with an invalid date when month=garbage is passed in the URL.",
+  "category": "bug_report",
+  "categoryReason": "Reproducible crash in input handling.",
+  "priority": "medium",
+  "priorityEvidence": "N/A",
+  "priorityUncertainty": "N/A",
+  "suggestedLabels": [],
+  "evidence": [],
+  "missingInformation": [],
+  "relatedIssues": [],
+  "recommendedNextStep": "N/A",
+  "proposedActions": [],
+  "containsEmbeddedInstructions": false,
+  "limitations": [],
+  "coverage": {
+    "searchesRun": 1,
+    "searchesFailed": 0,
+    "candidatesRead": 1,
+    "commentsTruncated": false,
+    "stopReason": "completed",
+    "removedByValidation": []
+  }
+}
