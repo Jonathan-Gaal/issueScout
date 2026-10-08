@@ -1,0 +1,25 @@
+# 004 — `ModelReport` zod schema and fixtures
+
+## [SPEC]
+
+- **Objective**: Build the zod schema that validates the model's raw output against `ModelReport` (TRD §3.1) before the harness trusts any of it — this is the harness's step-6 "structure validation" gate (TRD §2's 9-step lifecycle; Build Spec §8.1 step 6). Also create the hand-written valid/invalid fixture files this schema is unit-tested against, and the first slice of the frozen synthetic GitHub/model fixtures later specs' harness tests (007, 008, 013) will reuse.
+- **Inputs/Outputs**: Schema shape is `ModelReport` from TRD.md §3.1, verbatim — `summary`, `category` (enum `bug_report`|`feature_request`|`question`|`needs_clarification`), `categoryReason`, `priority` (enum including `not_assigned`), `priorityEvidence`, `priorityUncertainty`, `suggestedLabels` (array of `{name, reason}`), `evidence` (array of `{observation, sourceUrl}`), `missingInformation` (string array), `relatedIssues` (array, max 3, of `{number, title, url, similarities, differences, assessment}`), `recommendedNextStep`, `proposedActions` (union array — schema allows entries per TRD §3.1, even though the harness unconditionally overwrites this to `[]` in spec 008, per the "Phase-1 invariant" note), `containsEmbeddedInstructions` (boolean), `limitations` (string array). Schema uses `.strict()` so an unexpected key (e.g., a model-emitted `coverage`) is rejected, not silently passed through — TRD §3.1 is explicit that `coverage` is harness-written, never model-written.
+- **Design Pattern**: none — simple case (zod schema definition mirroring an existing TypeScript interface one-to-one).
+- **Bounded-AI boundary**: Entirely deterministic — zod validation is a pass/fail structural check, never itself a model call. (The thing being validated came from a model in a later spec; this spec's own logic contains no model invocation.)
+- **Verification Oracle**: `npx vitest run tests/unit/modelReportSchema.test.ts` — new unit tests: a hand-written valid `ModelReport` fixture parses successfully via `ModelReportSchema.safeParse()`; a fixture missing a required field (e.g., no `category`) fails with `success: false`; a fixture with an extra unexpected top-level key (simulating a model emitting its own `coverage`) fails due to `.strict()`; a fixture with `relatedIssues` containing 4 entries fails the max-3 constraint; a fixture with an invalid `category` enum value fails.
+- **Intellectual Control**: Using zod here is the one dependency-triage-justified use in this build (per PRD §7/CLAUDE.md: "untrusted model output is exactly the correctness-critical case that earns a dependency") — hand-rolling a structural validator for a nested nine-field object with enums and array-length constraints would be both more code and more bug-prone than the library call, meeting dependency-triage's "genuinely large/fiddly" exception. `.strict()` is what makes `coverage` being harness-only an enforced invariant rather than a code-review-only convention — if the model emits a `coverage` key trying to self-report, this schema rejects the whole payload rather than merging it in.
+- **Constraints**: `zod` only — already pre-authorized, no new dependency. Schema file contains no model-calling code and no persistence code — purely the shape definition plus the exported `ModelReportSchema`/`type ModelReport` (re-exported from `lib/contract.ts`'s type, not a parallel hand-written duplicate — the zod schema's inferred type and `lib/contract.ts`'s interface must be checked against each other, not allowed to silently drift apart).
+- **Edge Cases**: An empty `suggestedLabels`/`evidence`/`missingInformation`/`relatedIssues`/`limitations` array is valid (a report can legitimately have none of something) — the schema enforces *shape*, not non-emptiness, except where TRD explicitly caps a max (relatedIssues ≤ 3). A `priority` of `not_assigned` paired with `category: bug_report` is schema-valid (the schema doesn't cross-validate category/priority consistency — TRD §3.1 doesn't impose that constraint at the type level, and inventing one here would be scope creep beyond the authoritative contract).
+- **UI States**: N/A — no UI files.
+- **Files** (≤5):
+  1. `lib/server/schemas/modelReport.ts` — new.
+  2. `tests/unit/modelReportSchema.test.ts` — new.
+  3. `tests/fixtures/model/valid-bug-report.json` — new (`// SYNTHETIC FIXTURE` header comment equivalent — a `_fixture: "synthetic"` marker field, since JSON has no comments).
+  4. `tests/fixtures/model/invalid-missing-field.json` — new.
+  5. `tests/fixtures/model/invalid-extra-key.json` — new.
+
+**References (≤3):** `lib/contract.ts` (spec 002, the `ModelReport` TypeScript interface this schema must match), TRD.md §3.1 (authoritative shape).
+
+[FORCES]
+1. A library call for untrusted-input structural validation > a hand-rolled validator for a 9-field nested object with enums and length caps (dependency-triage's named exception, not a default reach for a dependency).
+2. Simplicity > Pattern purity (always present unless explicitly overridden).
