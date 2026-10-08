@@ -95,3 +95,26 @@ A human-approved, detailed Phase-1 backend implementation plan already exists at
 **Why this is traceable, not silent:** This log entry is the trace. T5/T7's absence is also directly visible from the oracle command itself (`tests/harness/t1.t2.test.ts tests/harness/t3.t4.test.ts tests/harness/t6.t8.test.ts tests/harness/t9.t10.test.ts` — no t5/t7 file named), from PRD §10's explicit Phase-2 gating, and from CLAUDE.md's "T5 and T7 are Phase 2, skipped" framing already stated before this build started.
 
 **What would close this:** Once Phase 2 is in scope (actions/approvals tables exist, D4/D5 resolved), T5/T7 get their own spec alongside the write-path build — not retrofitted onto spec 014's Phase-1-scoped file cap.
+
+---
+
+## 2026-10-08 — Ratchet Mode 2 (Green) + Red-Alert Mode 2 (Diff Re-check)
+
+### [COMPLIANCE-REPORT] Phase 1 build verified green; Red-Alert Mode 2 re-check of the 6 original findings — 5 confirmed closed, 1 new non-blocking gap
+
+**Ratchet Mode 2:** `npm test` → 19 passed, 1 skipped (20 files); 139 passed, 2 skipped (141 tests). `npm run build` → compiles clean, `/api/runs` and `/api/runs/[id]` both register as dynamic routes. Both oracles green as of commit `c6a5dce` on `worktree-agent-afdb4de6b4bdbcbc9`.
+
+**Red-Alert Mode 2** re-checked the actual diff against PRD §9's six findings, not a fresh audit:
+
+1. **Two-check auth (finding #1):** CONFIRMED closed. `lib/server/auth.ts` exposes `verifySession`/`isAllowlisted` as two separate functions; both `app/api/runs/route.ts` and `app/api/runs/[id]/route.ts` call both, no combined guard exists to call instead.
+2. **IDOR / per-resource ownership (finding #2):** CONFIRMED closed. `db.runs.getOwned(id, userId)` filters `WHERE id = :id AND user_id = :userId` as the query predicate itself; the route handler collapses "doesn't exist" and "exists but not yours" to the same `not_found` response.
+3. **GITHUB_WRITE_TOKEN provisioning gate (finding #3):** CONFIRMED closed. Zero references anywhere in `lib/` or `app/`.
+4. **RLS on all 4 tables (finding #4):** CONFIRMED present in `migrations/0001_init.sql` for `runs`, `issues`, `tool_calls`, `reports`. Automated test remains skipped pending real Supabase credentials — already logged as a gap by Wheeljack above, not a new finding.
+5. **Strict CORS (finding #5):** CONFIRMED closed for the allowlist check itself — `lib/server/cors.ts`'s `checkCorsOrigin` is non-wildcard, checked first in every handler, before auth.
+6. **Secrets/logging discipline (finding #6, generalized):** CONFIRMED closed. `LogMeta` in `lib/server/logger.ts` has no free-text field (structural, not conventional); `config.ts` never logs secret values, only warns on missing `GITHUB_READ_TOKEN`.
+
+**[GAP] New, non-blocking: no `OPTIONS` handler on either route, despite `cors.ts` advertising `OPTIONS` in `Access-Control-Allow-Methods`.** A real browser request will preflight (OPTIONS) because `Authorization` is a non-simple header; neither `app/api/runs/route.ts` nor `app/api/runs/[id]/route.ts` exports an `OPTIONS` handler, so Next.js's App Router will 405 the preflight, blocking the actual GET/POST from ever being sent by a browser. Not blocking for this cycle (backend-only, no frontend caller exists yet to trigger a real preflight; `curl`/server-to-server calls used by the T1-T10 acceptance tests never preflight). **Must be fixed before Ivaylo's frontend slice makes its first real browser call** — add an `OPTIONS` export to both route files that returns `buildCorsHeaders(origin)` with a 204, reusing the existing `checkCorsOrigin`/`buildCorsRejectedResponse` helpers already in `cors.ts`. Flagged for whoever starts the frontend integration, and for perceptor's close-out gap review.
+
+**Soundwave (conditional, specs 009/011/013):** Architecture holds. The D9 auth-provider swap risk is correctly isolated behind the two-function `verifySession`/`isAllowlisted` interface — a provider change touches only `auth.ts`. The IDOR defense is structural (query predicate, not a post-fetch comparison) so it can't regress via a careless edit to the handler. RLS is real defense-in-depth, not just declared SQL (per Wheeljack's manual psql verification above). No architectural concerns beyond the OPTIONS gap already logged under Red-Alert above.
+
+**Verdict:** Phase 1 backend build PASSES Mode 2 review. One non-blocking gap logged (OPTIONS/preflight) for pre-frontend-integration fix. Cleared for Scattershot to ship.
