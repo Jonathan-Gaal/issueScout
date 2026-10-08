@@ -71,3 +71,17 @@ A human-approved, detailed Phase-1 backend implementation plan already exists at
 **What was verified instead:** The CI-blocking half of spec 010's oracle (`tests/unit/dbRuns.test.ts`, mocked Supabase client, 6/6 green) fully passes, including the call-argument-level assertions that `getOwned`/`list`/`countInLastHour` all filter on `user_id`. The query shapes were also cross-checked by hand against the real column names confirmed live via spec 009's manual `psql \d runs` check (same column names: `id`, `user_id`, `issue_url`, `status`, etc.) — so the query strings are known-correct against the real schema, even without a live round-trip through Supabase's own API layer specifically.
 
 **What would close this gap:** Once `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` exist for a real project with spec 009's migration applied, run one `db.runs.create()` followed by `db.runs.getOwned()` manually and confirm the round-trip, per spec 010's own instruction that this check is logged in the completion report, not a CI gate.
+
+---
+
+### [BUGFIX] supabaseClient.ts constructed eagerly, crashing `next build` with no Supabase env vars set
+
+**What:** While building spec 013's route handlers (`app/api/runs/route.ts`, `app/api/runs/[id]/route.ts`), `npm run build` failed with `Error: supabaseUrl is required.` Next.js's build-time route collection imports every route module to gather metadata — this import chain reaches `lib/server/db/supabaseClient.ts` (spec 010), which called `createClient(supabaseUrl ?? "", supabaseServiceRoleKey ?? "")` at module scope. `@supabase/supabase-js`'s `createClient` throws synchronously on an empty URL, so the build crashed even though no request was ever made — this build environment has no real Supabase env vars configured (same root cause as the spec 009/010 gaps above).
+
+**Red (confirmed failing for the right reason):** `npm run build` failed with the exact error above, pointing at `supabaseClient.ts`'s module-scope `createClient` call, before any fix was applied.
+
+**Fix:** Changed `supabaseClient` from an eagerly-constructed `const` to a `Proxy` that lazily constructs the real client (via `getSupabaseClient()`) on first property access, not at import time. Falls back to placeholder connection values (`http://localhost:54321`, `"placeholder-key"`) when env vars are unset, so import/build-time evaluation never throws — a real request would still fail at the actual Supabase call (correctly), but merely importing the module no longer does.
+
+**Green (confirmed fixed):** `npm run build` now completes cleanly, `app/api/runs` and `app/api/runs/[id]` both show up as recognized dynamic routes. `tests/unit/dbRuns.test.ts` and `tests/unit/dbIssuesToolCallsReports.test.ts` (both mock the entire `supabaseClient` module) re-ran green after the change — 21/21 across the three affected test files.
+
+**Regression test:** Covered implicitly by every spec's `npm run build` oracle re-running green going forward — this is exactly the kind of regression a build-must-pass gate catches; no separate unit test was added since the failure mode is "the module throws on import," which `npm run build` already exercises directly on every spec from here on.
