@@ -85,3 +85,13 @@ A human-approved, detailed Phase-1 backend implementation plan already exists at
 **Green (confirmed fixed):** `npm run build` now completes cleanly, `app/api/runs` and `app/api/runs/[id]` both show up as recognized dynamic routes. `tests/unit/dbRuns.test.ts` and `tests/unit/dbIssuesToolCallsReports.test.ts` (both mock the entire `supabaseClient` module) re-ran green after the change — 21/21 across the three affected test files.
 
 **Regression test:** Covered implicitly by every spec's `npm run build` oracle re-running green going forward — this is exactly the kind of regression a build-must-pass gate catches; no separate unit test was added since the failure mode is "the module throws on import," which `npm run build` already exercises directly on every spec from here on.
+
+---
+
+### [NOTE] Spec 014: T5/T7 intentionally not implemented, no trace stub added (file-cap tradeoff)
+
+**What:** Spec 014 explicitly scopes T5 (approve one action, reject another, confirm only the approved one writes) and T7 (direct call to the write path with no approval record is refused) out of this cycle — both require the `actions`/`approvals` tables and the write path, neither of which exist yet (Phase 2, blocked on D4/D5, per SCHEMA.md and PRD §10). Spec 014's own text allows (not requires) "a stub or skipped test for T5/T7... with an explicit `.skip()` and a comment," but its Files list caps this spec at the 4 combined T-test files plus fixtures — no 5th file was spent on a T5/T7 stub, since the spec frames it as optional ("may be added") and the Files list already uses its 4 real slots plus the fixtures slot.
+
+**Why this is traceable, not silent:** This log entry is the trace. T5/T7's absence is also directly visible from the oracle command itself (`tests/harness/t1.t2.test.ts tests/harness/t3.t4.test.ts tests/harness/t6.t8.test.ts tests/harness/t9.t10.test.ts` — no t5/t7 file named), from PRD §10's explicit Phase-2 gating, and from CLAUDE.md's "T5 and T7 are Phase 2, skipped" framing already stated before this build started.
+
+**What would close this:** Once Phase 2 is in scope (actions/approvals tables exist, D4/D5 resolved), T5/T7 get their own spec alongside the write-path build — not retrofitted onto spec 014's Phase-1-scoped file cap.
