@@ -49,3 +49,15 @@ A human-approved, detailed Phase-1 backend implementation plan already exists at
 **What would close this gap:** Once a real Supabase project exists with `SUPABASE_URL`/`SUPABASE_ANON_KEY` available to a test run (not the service-role key), un-skip `tests/integration/rls.test.ts` and implement the same two assertions already manually proven above, so the check is repeatable in CI rather than a one-off session.
 
 **Flagged for:** Soundwave's post-GREEN risk assessment on this spec (per CLAUDE.md's team roster, spec 009's RLS work is explicitly named as a soundwave-dispatch trigger) and perceptor's close-out gap review.
+
+---
+
+### [GAP] Spec 008 persistence: dependency-injected, not a direct import of spec 009's "data layer"
+
+**What:** Spec 008's Inputs/Outputs section says persistence (step 9) happens "via spec 009's data layer (referenced, not redefined)." Spec 009 (already built) is the DB *migration* and RLS policies — it does not expose any data-access functions (no `db/runs.ts`, `db/issues.ts`, etc.). The actual data-access layer is specs 010/010b, which come *after* 008 in the given build order. Importing a not-yet-built module from `runHarness.ts` was not possible without either reordering the build or inventing the shape of 010/010b's exports ahead of their own spec — the latter risks exactly the "never invent an API response shape" hard rule.
+
+**Resolution:** Built `runHarness.ts`'s persistence step as dependency-injected (`persistRun?: (outcome) => Promise<void>`, defaulting to a no-op), same pattern spec 007b already established for the rate-limit count source. This lets `runHarness`'s own tests run with zero DB dependency, and leaves specs 010/010b free to define their own real persistence function signature on their own terms, then have spec 013 (API routes) wire `persistRun` to the real implementation when assembling the full `POST /api/runs` handler.
+
+**Why this is a judgment call worth flagging, not a silent one:** This changes "spec 009's data layer" (as spec 008's text names it) into "whatever spec 010/010b end up building, injected." If spec 013 (which wires the API route) was written assuming `runHarness` imports the DB layer directly rather than accepting it as a parameter, that's a contract mismatch to resolve when building spec 013 — noted here so it isn't missed.
+
+**Flagged for:** Whoever builds/reviews spec 013 (API routes) — confirm `runHarness`'s actual signature (`RunHarnessDependencies.persistRun`) against spec 013's expectations before wiring the route handler.

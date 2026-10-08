@@ -1,0 +1,15 @@
+{
+  "_fixture": "synthetic",
+  "_description": "Describes a fake model that always requests another search tool call and never returns a final text answer — used to drive the MAX_MODEL_TURNS / MAX_RUN_SECONDS turn-limit test in tests/harness/runHarness.test.ts. The actual looping behavior is implemented in the test file's fake ModelProvider; this fixture documents the intended tool_use shape it repeatedly emits.",
+  "repeatingToolUseResponse": {
+    "content": [
+      {
+        "type": "tool_use",
+        "id": "tool_call_placeholder",
+        "name": "github_issue_research",
+        "input": { "operation": "search", "query": "crash" }
+      }
+    ],
+    "stopReason": "tool_use"
+  }
+}
