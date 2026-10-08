@@ -118,3 +118,20 @@ A human-approved, detailed Phase-1 backend implementation plan already exists at
 **Soundwave (conditional, specs 009/011/013):** Architecture holds. The D9 auth-provider swap risk is correctly isolated behind the two-function `verifySession`/`isAllowlisted` interface — a provider change touches only `auth.ts`. The IDOR defense is structural (query predicate, not a post-fetch comparison) so it can't regress via a careless edit to the handler. RLS is real defense-in-depth, not just declared SQL (per Wheeljack's manual psql verification above). No architectural concerns beyond the OPTIONS gap already logged under Red-Alert above.
 
 **Verdict:** Phase 1 backend build PASSES Mode 2 review. One non-blocking gap logged (OPTIONS/preflight) for pre-frontend-integration fix. Cleared for Scattershot to ship.
+
+---
+
+## 2026-10-08 — Scattershot (Ship)
+
+### Phase 1 backend merged to `main`
+
+Merged `worktree-agent-afdb4de6b4bdbcbc9` (specs 001-015, Ratchet Mode 2 green, Red-Alert Mode 2 passed) into `main` via `--no-ff` merge. Removed the now-fully-merged worktree and its branch. Re-verified post-merge at root: `npm test` → 139 passed, 2 skipped (141); `npm run build` → clean. `main` now holds the complete Phase 1 backend (`app/api/`, `lib/server/`, `migrations/`, full test suite, README, `.env.example`).
+
+No production deploy performed — that stays an explicit separate human step per CLAUDE.md.
+
+**Carried-forward open items (not closed by this merge):**
+- OPTIONS/CORS-preflight gap (logged under Red-Alert Mode 2 above) — fix before Ivaylo's frontend makes its first real browser call.
+- `tests/integration/rls.test.ts` automated test still skipped pending real Supabase credentials (manually verified instead, per Wheeljack's log entry).
+- D9 (auth provider) still pending Ivaylo's explicit sign-off — PRD §12 Definition of Done not yet met on this point.
+- Retention/deletion stance for quoted third-party GitHub text (PRD §9 finding #6) — unresolved product escalation.
+- The stray `issuescout/` scaffold directory at the repo root is still untracked, unused leftover from before spec 001 relocated the real app to the project root — candidate for deletion, not yet acted on.
