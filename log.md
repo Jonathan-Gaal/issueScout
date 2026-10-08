@@ -33,3 +33,19 @@ Episodic record of decisions and events for this project. `[DECISION]` entries a
 ### Note for the record (not acted on, per the task's explicit instruction)
 
 A human-approved, detailed Phase-1 backend implementation plan already exists at `/Users/jongaal/.claude/plans/what-can-u-see-wobbly-deer.md` — file-by-file design (config module, GitHub client interface, model provider interface, harness pseudocode, zod schemas, DB migration SQL, API route handlers, test plan, build order). It already resolved D2 (Anthropic primary/Groq best-effort swap), D3 (read-only fine-grained PAT), D6/D7/D8 (constants), and the tech-choice rationale. Referenced in `TRD.md`'s header and §1, and in `CLAUDE.md`'s Project-specific constraints — Shockwave should treat it as a strong design reference when writing specs rather than re-deriving these decisions.
+
+---
+
+## 2026-10-08 — Wheeljack (Build)
+
+### [GAP] Spec 009 automated RLS test skipped — no live Supabase instance in this build environment; manually verified against local Postgres instead
+
+**What:** `tests/integration/rls.test.ts` (spec 009) is marked `describe.skipIf(!hasSupabaseAnonConnection)` rather than running automatically, because no `SUPABASE_URL`/`SUPABASE_ANON_KEY` are configured in this worktree. Per the SECRETS discipline and this build's explicit instruction, `.env` (which may hold real Supabase credentials) was never read or copied by this agent.
+
+**What was actually verified, manually, against a real database (not mocked):** A local Postgres instance (`psql -h /tmp -p 5432`) was reachable in this environment. The real `migrations/0001_init.sql` was applied to a scratch database (`issuescout_migration_check`, dropped after) with a minimal `auth.uid()` stub standing in for Supabase's auth schema. Confirmed via `\d runs`/`\d issues`/`\d tool_calls`/`\d reports`: every column, constraint, FK, and index matches SCHEMA.md exactly. Then, with a `NOBYPASSRLS` role simulating Supabase's non-service-role `anon` connection: a cross-user `SELECT` on `runs` for a row owned by a different `user_id` returned 0 rows; a cross-user `INSERT` on `runs` raised `ERROR: new row violates row-level security policy`; a cross-user `SELECT` on `issues` (subquery-scoped via `runs.user_id`) returned 0 rows, and the same query as the owning user correctly returned 1 row. This is the same RLS engine Supabase runs on (Postgres RLS), so this is real enforcement-level evidence, not merely "the SQL parsed."
+
+**Why this is still a logged gap, not a closed item:** The *automated, repeatable* `tests/integration/rls.test.ts` still needs a real Supabase project's `SUPABASE_URL`/`SUPABASE_ANON_KEY` to run as part of the normal test suite — the manual verification above was a one-off scratch-database session in this build, not a committed, re-runnable check. SCHEMA.md/US-7 call for RLS to "actually be tested," which the manual check above satisfies in spirit for this build, but the committed automated test remains skipped until real Supabase credentials exist.
+
+**What would close this gap:** Once a real Supabase project exists with `SUPABASE_URL`/`SUPABASE_ANON_KEY` available to a test run (not the service-role key), un-skip `tests/integration/rls.test.ts` and implement the same two assertions already manually proven above, so the check is repeatable in CI rather than a one-off session.
+
+**Flagged for:** Soundwave's post-GREEN risk assessment on this spec (per CLAUDE.md's team roster, spec 009's RLS work is explicitly named as a soundwave-dispatch trigger) and perceptor's close-out gap review.
