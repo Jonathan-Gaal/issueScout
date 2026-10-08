@@ -1,0 +1,5 @@
+{
+  "_fixture": "synthetic",
+  "_description": "Describes the shape a fake GitHubClient.searchIssues returns to simulate a 403/429 GitHub rate limit mid-run — used in tests/harness/runHarness.test.ts to confirm coverage.searchesFailed >= 1 and that a failed search is never reported as zero matches.",
+  "searchIssuesResult": { "rateLimited": true }
+}
