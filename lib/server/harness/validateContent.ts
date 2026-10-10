@@ -11,6 +11,7 @@ export interface ContentValidationInputs {
   realLabelNames: Set<string>;
   retrievedIssueNumbers: Set<number>;
   retrievedUrls: Set<string>;
+  retrievedIssueUrls?: Map<number, string>;
 }
 
 export interface ContentValidationResult {
@@ -38,7 +39,8 @@ export function validateContent(
   });
 
   const validRelatedIssues = modelReport.relatedIssues.filter((relatedIssue) => {
-    const isValid = inputs.retrievedIssueNumbers.has(relatedIssue.number);
+    const isValid = inputs.retrievedIssueNumbers.has(relatedIssue.number) &&
+      (inputs.retrievedIssueUrls ? inputs.retrievedIssueUrls.get(relatedIssue.number) === relatedIssue.url : inputs.retrievedUrls.has(relatedIssue.url));
     if (!isValid) {
       removedByValidation.push(`relatedIssue:${relatedIssue.number}`);
     }

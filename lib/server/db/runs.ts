@@ -43,6 +43,15 @@ export interface UpdateRunStatusParams {
 const RUNS_TABLE = "runs";
 
 export const runs = {
+  async admit(params: CreateRunParams, limit: number): Promise<RunRow | null> {
+    const { data, error } = await supabaseClient.rpc("admit_run", { p_user_id: params.userId, p_issue_url: params.issueUrl, p_limit: limit });
+    if (error) throw new Error("Run admission failed.");
+    return data?.[0] ?? null;
+  },
+  async finish(runId: string, userId: string, repo: string, outcome: unknown, durationMs: number): Promise<void> {
+    const { error } = await supabaseClient.rpc("finish_run", { p_run_id: runId, p_user_id: userId, p_repo: repo, p_outcome: outcome, p_duration_ms: durationMs });
+    if (error) throw new Error("Run persistence failed.");
+  },
   /** Creates a new run row, owned by userId. Returns the created row. */
   async create(params: CreateRunParams): Promise<RunRow> {
     const { data, error } = await supabaseClient

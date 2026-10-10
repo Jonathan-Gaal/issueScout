@@ -46,7 +46,7 @@ describe("verifySession", () => {
   });
 
   it("returns the decoded identity for a valid Firebase session token", async () => {
-    const verifyIdTokenMock = vi.fn().mockResolvedValue({ uid: "uid-123", email: "maintainer@example.com" });
+    const verifyIdTokenMock = vi.fn().mockResolvedValue({ uid: "uid-123", email: "maintainer@example.com", email_verified: true });
     vi.doMock("firebase-admin/app", () => ({ getApps: () => [], initializeApp: vi.fn() }));
     vi.doMock("firebase-admin/auth", () => ({ getAuth: () => ({ verifyIdToken: verifyIdTokenMock }) }));
 
@@ -54,7 +54,16 @@ describe("verifySession", () => {
     const requestWithValidToken = createRequestWithBearerToken("valid-token");
 
     const result = await verifySession(requestWithValidToken);
+    expect(verifyIdTokenMock).toHaveBeenCalledWith("valid-token", true);
     expect(result).toEqual({ uid: "uid-123", email: "maintainer@example.com" });
+  });
+
+  it("rejects an unverified email even when the token is otherwise valid", async () => {
+    const verifyIdTokenMock = vi.fn().mockResolvedValue({ uid: "uid-123", email: "maintainer@example.com", email_verified: false });
+    vi.doMock("firebase-admin/app", () => ({ getApps: () => [], initializeApp: vi.fn() }));
+    vi.doMock("firebase-admin/auth", () => ({ getAuth: () => ({ verifyIdToken: verifyIdTokenMock }) }));
+    const { verifySession } = await import("../../lib/server/auth");
+    expect(await verifySession(createRequestWithBearerToken("unverified"))).toBeNull();
   });
 
   it("returns null for a decoded token that has no email claim", async () => {

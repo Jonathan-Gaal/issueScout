@@ -76,6 +76,7 @@ async function setUpMocks(options: { allowedEmails: string[] }) {
     },
   }));
 
+  vi.doMock("../../lib/server/db/reports", () => ({ reports: { getOwned: vi.fn(async () => ({ summary: "saved report" })) } }));
   vi.doMock("../../lib/server/harness/runHarness", () => ({
     runHarness: vi.fn(async () => ({
       status: "completed",

@@ -38,6 +38,7 @@ export interface ModelCompletionParams {
   messages: ModelMessage[];
   tools: ToolDefinition[];
   maxOutputTokens: number;
+  signal?: AbortSignal;
 }
 
 /**

@@ -77,7 +77,7 @@ describe("T3 — embedded-instruction issue, forced search rate-limit", () => {
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
-    expect(result.status).toBe("completed");
+    expect(result.status).toBe("stopped");
     expect(result.report?.containsEmbeddedInstructions).toBe(true);
     expect(result.report?.coverage.searchesFailed).toBeGreaterThanOrEqual(1);
 

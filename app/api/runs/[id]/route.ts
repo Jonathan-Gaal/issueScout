@@ -1,3 +1,5 @@
+import { reports } from "../../../../lib/server/db/reports";
+export { handlePreflight as OPTIONS } from "../../../../lib/server/cors";
 // GET /api/runs/:id — TRD §3.2's per-resource endpoint. The IDOR-
 // critical path: a run that doesn't exist OR exists but isn't the
 // requester's returns the SAME response shape (not_found), via
@@ -36,6 +38,7 @@ export async function GET(req: Request, { params }: RouteParams): Promise<Respon
   // comparison. getOwned returns null for both "doesn't exist" and
   // "exists but belongs to someone else," so this handler cannot leak
   // the distinction even if it wanted to.
+  try {
   const run = await runs.getOwned(id, identity.uid);
   if (!run) {
     return NextResponse.json(buildApiErrorBody("not_found"), {
@@ -44,5 +47,7 @@ export async function GET(req: Request, { params }: RouteParams): Promise<Respon
     });
   }
 
-  return NextResponse.json({ run, report: null, actions: [] }, { status: 200, headers: corsHeaders });
+  const report = await reports.getOwned(id, identity.uid);
+  return NextResponse.json({ run, report, actions: [] }, { status: 200, headers: corsHeaders });
+  } catch { return NextResponse.json(buildApiErrorBody("write_failed"), { status: getErrorStatus("write_failed"), headers: corsHeaders }); }
 }

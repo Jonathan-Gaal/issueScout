@@ -53,12 +53,13 @@ function toGroqTool(toolDefinition: ToolDefinition): Record<string, unknown> {
 
 function toGroqMessages(params: ModelCompletionParams): Array<Record<string, unknown>> {
   const systemMessage = { role: "system", content: params.systemPrompt };
-  const conversationMessages = params.messages.map((message) => {
-    const textParts = message.content
-      .filter((block): block is { type: "text"; text: string } => block.type === "text")
-      .map((block) => block.text);
-    return { role: message.role, content: textParts.join("\n") };
-  });
+  const conversationMessages: Array<Record<string, unknown>> = [];
+  for (const message of params.messages) {
+    const text = message.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+    const calls = message.content.filter(b => b.type === "tool_use").map(b => ({ id: b.id, type: "function", function: { name: b.name, arguments: JSON.stringify(b.input) } }));
+    if (text || calls.length) conversationMessages.push({ role: message.role, content: text || null, ...(calls.length ? { tool_calls: calls } : {}) });
+    for (const block of message.content) if (block.type === "tool_result") conversationMessages.push({ role: "tool", tool_call_id: block.toolUseId, content: block.content });
+  }
   return [systemMessage, ...conversationMessages];
 }
 
@@ -116,6 +117,7 @@ export class GroqProvider implements ModelProvider {
   async complete(params: ModelCompletionParams): Promise<ModelResponse> {
     const response = await fetch(GROQ_CHAT_COMPLETIONS_URL, {
       method: "POST",
+      signal: AbortSignal.any([AbortSignal.timeout(config.requestTimeoutSeconds * 1000), ...(params.signal ? [params.signal] : [])]),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
@@ -133,7 +135,8 @@ export class GroqProvider implements ModelProvider {
     }
 
     const parsedResponse = (await response.json()) as GroqChatCompletionResponse;
-    const firstChoice = parsedResponse.choices[0];
+    const firstChoice = parsedResponse.choices?.[0];
+    if (!firstChoice?.message || typeof firstChoice.finish_reason !== "string") throw new Error("Malformed model response");
 
     return {
       content: normalizeGroqMessage(firstChoice.message),

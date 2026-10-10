@@ -72,6 +72,11 @@ function parseCorsAllowedOrigins(rawValue: string | undefined): string[] {
     .filter((origin) => origin.length > 0);
 }
 
+function positiveLimit(name: string, fallback: number, maximum: number): number {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) throw new Error(`Invalid configuration: ${name}`);
+  return value;
+}
 export const config: AppConfig = {
   approvedRepo: process.env.APPROVED_REPO ?? "calcom/cal.diy",
 
@@ -87,11 +92,11 @@ export const config: AppConfig = {
 
   // D6/D7/D8 — CONFIRM BEFORE SHIPPING with Ivaylo: issue size cap,
   // model output token cap, and per-user hourly run cap.
-  issueMaxChars: Number(process.env.ISSUE_MAX_CHARS ?? 20000),
-  maxOutputTokens: Number(process.env.MAX_OUTPUT_TOKENS ?? 4000),
-  runsPerUserPerHour: Number(process.env.RUNS_PER_USER_PER_HOUR ?? 10),
+  issueMaxChars: positiveLimit("ISSUE_MAX_CHARS", 20000, 100000),
+  maxOutputTokens: positiveLimit("MAX_OUTPUT_TOKENS", 4000, 16000),
+  runsPerUserPerHour: positiveLimit("RUNS_PER_USER_PER_HOUR", 10, 100),
 
-  // D9 — CONFIRM BEFORE SHIPPING: Firebase vs other provider.
+  // D9: Firebase confirmed by Ivaylo on October 10, 2026.
   authProvider: (process.env.AUTH_PROVIDER as AuthProviderName) ?? "firebase",
   // D9 — CONFIRM BEFORE SHIPPING: finalize the allowlist membership.
   allowedUserEmails: parseAllowedUserEmails(process.env.ALLOWED_USER_EMAILS),

@@ -57,9 +57,9 @@ describe("RestGitHubClient", () => {
       fetchMock.mockResolvedValueOnce(
         jsonResponse(200, {
           items: [
-            { number: 1, title: "input issue itself", html_url: "u1", state: "open" },
-            { number: 2, title: "a real PR", pull_request: {}, html_url: "u2", state: "open" },
-            { number: 3, title: "a real issue candidate", html_url: "u3", state: "open", body: "x" },
+            { number: 1, title: "input issue itself", html_url: "https://github.com/calcom/cal.diy/issues/1", state: "open" },
+            { number: 2, title: "a real PR", pull_request: {}, html_url: "https://github.com/calcom/cal.diy/issues/2", state: "open" },
+            { number: 3, title: "a real issue candidate", html_url: "https://github.com/calcom/cal.diy/issues/3", state: "open", body: "x" },
           ],
         })
       );
@@ -68,7 +68,7 @@ describe("RestGitHubClient", () => {
       const result = await client.searchIssues("crash", 10, 1);
 
       expect(result).toEqual([
-        { number: 3, title: "a real issue candidate", excerpt: "x", state: "open", url: "u3" },
+        { number: 3, title: "a real issue candidate", excerpt: "x", state: "open", url: "https://github.com/calcom/cal.diy/issues/3" },
       ]);
     });
 

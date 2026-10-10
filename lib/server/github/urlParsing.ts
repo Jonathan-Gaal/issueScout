@@ -15,7 +15,7 @@ export type UrlParseResult =
   | { ok: false; code: Extract<ErrorCode, "invalid_url" | "repo_not_allowed" | "is_pull_request"> };
 
 const GITHUB_ISSUE_URL_PATTERN =
-  /^https?:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/(issues|pull)\/(\d+)\/?(?:[?#].*)?$/i;
+  /^https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/(issues|pull)\/(\d+)\/?(?:[?#].*)?$/i;
 
 /**
  * Parses and classifies a GitHub issue URL against the approved repo.
@@ -35,7 +35,7 @@ export function parseIssueUrl(rawUrl: string, approvedRepo: string): UrlParseRes
 
   const [, owner, repo, urlKind, numberText] = match;
   const number = Number(numberText);
-  if (!Number.isInteger(number) || number <= 0) {
+  if (!Number.isSafeInteger(number) || number <= 0) {
     return { ok: false, code: "invalid_url" };
   }
 

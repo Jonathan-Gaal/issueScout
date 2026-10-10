@@ -69,7 +69,7 @@ export class AnthropicProvider implements ModelProvider {
         "ANTHROPIC_API_KEY is not set but modelProvider is 'anthropic'."
       );
     }
-    this.client = new Anthropic({ apiKey: config.anthropicApiKey });
+    this.client = new Anthropic({ apiKey: config.anthropicApiKey, maxRetries: 0, timeout: config.requestTimeoutSeconds * 1000 });
     this.model = config.anthropicModel;
   }
 
@@ -100,7 +100,7 @@ export class AnthropicProvider implements ModelProvider {
           };
         }),
       })),
-    });
+    }, { signal: params.signal });
 
     return {
       content: normalizeAnthropicContent(response.content),
