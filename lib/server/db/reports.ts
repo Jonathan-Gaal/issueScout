@@ -25,6 +25,12 @@ const REPORTS_TABLE = "reports";
 const UNIQUE_VIOLATION_CODE = "23505";
 
 export const reports = {
+  async getOwned(runId: string, userId: string): Promise<Report | null> {
+    const { data, error } = await supabaseClient.from(REPORTS_TABLE)
+      .select("report, runs!inner(user_id)").eq("run_id", runId).eq("runs.user_id", userId).maybeSingle();
+    if (error) throw new Error("Report lookup failed.");
+    return (data?.report as Report | undefined) ?? null;
+  },
   async create(params: CreateReportParams): Promise<void> {
     const { error } = await supabaseClient
       .from(REPORTS_TABLE)

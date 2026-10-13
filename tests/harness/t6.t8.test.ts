@@ -64,7 +64,7 @@ describe("T6 — model that never stops requesting searches is stopped at the tu
 });
 
 describe("T8 — forced GitHub timeout, malformed response, invalid model output twice", () => {
-  it("a forced GitHub failure during issue fetch returns not_found (github_error-shaped), never a stack trace, nothing written to reports", async () => {
+  it("a forced GitHub failure during issue fetch returns github_error, never a stack trace, nothing written to reports", async () => {
     const githubClient = createFakeGitHubClient({
       getIssue: vi.fn(async () => {
         throw new Error("simulated network timeout");
@@ -80,14 +80,8 @@ describe("T8 — forced GitHub timeout, malformed response, invalid model output
         { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
         { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck, persistRun }
       )
-      // A thrown GitHub-layer error during the fetch step is expected
-      // to propagate here since this harness's getIssue contract
-      // returns a typed result for "not found," not for "the network
-      // itself failed" — the real client (spec 003) catches transport
-      // failures and retries/timeouts at its own layer; this
-      // assertion documents that a raw throw here is NOT silently
-      // swallowed into a fabricated success.
-    ).rejects.toThrow();
+    ).resolves.toEqual({ status: "failed", errorCode: "github_error" });
+    expect(persistRun).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", errorCode: "github_error" }));
 
     expect(modelProvider.complete).not.toHaveBeenCalled();
   });

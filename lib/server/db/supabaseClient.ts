@@ -20,15 +20,16 @@ function createSupabaseClient(): SupabaseClient {
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
-    console.warn(
-      "[db] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set — database calls will fail until both are configured."
-    );
+    throw new Error("Database configuration is missing.");
   }
 
   // Always the service-role key — RLS (spec 009) exists as
   // defense-in-depth for any *other* caller, not for this client,
   // which bypasses it by design.
-  return createClient(supabaseUrl ?? "http://localhost:54321", supabaseServiceRoleKey ?? "placeholder-key");
+  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.any([AbortSignal.timeout(10000), ...(init?.signal ? [init.signal] : [])]) }) },
+  });
 }
 
 function getSupabaseClient(): SupabaseClient {

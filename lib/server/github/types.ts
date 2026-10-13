@@ -59,12 +59,13 @@ export interface SearchError {
  * tool-schema level).
  */
 export interface GitHubClient {
-  getIssue(number: number): Promise<GitHubIssue | GetIssueNotFound>;
-  getComments(number: number, max: number): Promise<GetCommentsResult>;
-  getLabels(): Promise<GitHubLabel[]>;
+  getIssue(number: number, signal?: AbortSignal): Promise<GitHubIssue | GetIssueNotFound>;
+  getComments(number: number, max: number, signal?: AbortSignal): Promise<GetCommentsResult>;
+  getLabels(signal?: AbortSignal): Promise<GitHubLabel[]>;
   searchIssues(
     query: string,
     maxResults: number,
-    excludeIssueNumber: number
+    excludeIssueNumber: number,
+    signal?: AbortSignal
   ): Promise<SearchCandidate[] | SearchRateLimited | SearchError>;
 }

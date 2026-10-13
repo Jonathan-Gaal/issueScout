@@ -5,7 +5,7 @@ IssueScout prepares a first-pass triage report for one GitHub issue so a maintai
 ## Running locally
 
 ```bash
-npm install
+npm ci
 cp .env.example .env   # fill in real values — see below
 npm run dev
 ```
@@ -15,11 +15,11 @@ Required environment variables are documented in `.env.example`, with inline not
 - `ANTHROPIC_API_KEY` (or `GROQ_API_KEY` if `MODEL_PROVIDER=groq`)
 - `GITHUB_READ_TOKEN` (optional locally — without it, GitHub's unauthenticated 60/hr rate limit applies)
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
-- `ALLOWED_USER_EMAILS` and a Firebase project configured for `firebase-admin` (auth is currently a placeholder behind a swappable interface — see "Auth" below)
+- `ALLOWED_USER_EMAILS` and a Firebase project configured for `firebase-admin` (Firebase confirmed; see "Auth" below)
 
 ### Database
 
-Apply `migrations/0001_init.sql` to your Supabase project via the SQL editor (no migration-tool dependency is used for this two-person project). This creates the four Phase-1 tables (`runs`, `issues`, `tool_calls`, `reports`) with Row Level Security enabled on all four, scoped per `SCHEMA.md`.
+Apply `migrations/0001_init.sql`, then `supabase/migrations/20261010190601_backend_readiness.sql` to a dedicated Supabase test project before deployment. Existing databases that already have the initial migration need only the second file. Do not re-run the initial table creation. This creates the four Phase-1 tables (`runs`, `issues`, `tool_calls`, `reports`) with Row Level Security enabled on all four, scoped per `SCHEMA.md`.
 
 ### Running the test suite
 
@@ -47,7 +47,7 @@ These are the harness's actual enforced limits (`lib/server/config.ts`), not asp
 | Max model output tokens | 4,000 (`MAX_OUTPUT_TOKENS`) |
 | Max runs per user per hour | 10 (`RUNS_PER_USER_PER_HOUR`) |
 
-A run that hits a limit before finishing always returns a partial report naming the limit and what was left unchecked — never a blank result.
+A run that reaches its time budget after retrieving the issue returns a partial report. If the initial issue cannot be retrieved, it returns a structured failure. Failed candidate reads consume the read budget; format repair consumes the model-turn budget. Labels are paginated to a bounded maximum of 1,000; exceeding it fails visibly.
 
 ## What this build does not do (by design, Phase 1)
 
@@ -58,16 +58,16 @@ A run that hits a limit before finishing always returns a partial report naming 
 
 ## Auth
 
-Firebase Authentication sits behind a two-function interface (`lib/server/auth.ts`: `verifySession`, `isAllowlisted`) — Firebase is the current placeholder provider, **pending the project owners' final sign-off**, not a settled decision. The two checks are always called separately, in that order: a valid, signed-in session alone is not enough to use the app — the identity's email must also be present in `ALLOWED_USER_EMAILS`. This app is intentionally not open to the public.
+Firebase Authentication sits behind a two-function interface (`lib/server/auth.ts`: `verifySession`, `isAllowlisted`) — Firebase was confirmed by Ivaylo on October 10, 2026. The two checks are always called separately, in that order: A verified email and an unrevoked token are required; a valid, signed-in session alone is not enough to use the app — the identity's email must also be present in `ALLOWED_USER_EMAILS`. This app is intentionally not open to the public.
 
 ## Open items before any deploy beyond local dev
 
-Five environment/constant values in `lib/server/config.ts` are tagged `CONFIRM BEFORE SHIPPING` and still need the project owners' explicit sign-off — grep for that tag before deploying anywhere beyond local development:
+Remaining environment/constant values in `lib/server/config.ts` are tagged `CONFIRM BEFORE SHIPPING` and still need the project owners' explicit sign-off — grep for that tag before deploying anywhere beyond local development:
 
 1. **Model provider** (Anthropic vs. Groq) — Anthropic is the primary, fully-tested path; Groq is a best-effort local/cost-free alternative and is **not required to pass the acceptance tests**.
 2. **GitHub read-token scope** — confirm the fine-grained PAT is scoped exactly to the approved repository, read-only.
 3. **Issue size cap, model output token cap, and per-user hourly run cap** — currently 20,000 characters / 4,000 tokens / 10 runs per hour as starting defaults.
-4. **Auth provider and allowlist membership** — Firebase as a placeholder, final allowlist not yet confirmed by both owners.
+4. **Allowlist configuration** — limit it to Ivaylo and Jonathan’s verified Firebase emails. Firebase itself is confirmed.
 
 ### Retention/deletion stance for quoted third-party GitHub text — open escalation, not resolved
 
@@ -75,4 +75,16 @@ Five environment/constant values in `lib/server/config.ts` are tagged `CONFIRM B
 
 ## Stack
 
-Next.js (App Router, TypeScript) on Vercel, Supabase Postgres, Anthropic Claude (primary) / Groq (best-effort swap), Firebase Auth (placeholder), Vitest.
+Next.js (App Router, TypeScript) on Vercel, Supabase Postgres, Anthropic Claude (primary) / Groq (best-effort swap), Firebase Auth, Vitest.
+
+## Backend repair verification (October 10, 2026)
+
+The API reserves a database run before investigation, atomically saves its report/tool history/outcome, and returns that stored ID. The history endpoint loads only the requesting owner's report. `admit_run` serializes per-user hourly admission; both RPCs are service-role-only and use invoker security. The backend must keep checking ownership because its service key bypasses RLS.
+
+Firebase Admin uses Application Default Credentials. For local work, set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON file **outside the repository** for your Firebase project. Never send this file to the browser. Use verified Firebase accounts and set `ALLOWED_USER_EMAILS` to the pair's actual login addresses. Add the local or deployed app origin to `CORS_ALLOWED_ORIGINS`. Cross-origin clients must send the bearer token; preflight requires no token. Same-origin browser GET requests may omit Origin when Sec-Fetch-Site is same-origin; authentication still applies.
+
+`npm test` runs both the ordinary tests and the readiness regressions. `npm run type-check` generates Next.js route types first. All GitHub operations remain read-only. Mocked test passes are not a measurement of model quality or proof of production configuration.
+
+Live database tests are opt-in and create/delete synthetic users and rows in a **dedicated test project**. Supply `RUN_LIVE_DB_TESTS=1`, `TEST_SUPABASE_URL`, `TEST_SUPABASE_ANON_KEY`, and `TEST_SUPABASE_SERVICE_ROLE_KEY` in your shell, then run `npx vitest run tests/integration/rls.test.ts`. Do not point this at a production project. Without opt-in these tests are reported as skipped; with incomplete configuration they fail.
+
+Before frontend sign-off: apply both migrations to the test database, run the live tests, then verify real Firebase sign-in, one model-backed triage, saved-report retrieval, and rejection under the other user's session. Confirm read-token scope, provider/limits, and retention decisions. No migration has been applied to a cloud database by this repair.

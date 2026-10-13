@@ -7,6 +7,8 @@
 // owner/repo" (lib/server/github/client.ts hardcodes it from
 // config.approvedRepo; this file is the other half of that enforcement).
 
+import { z } from "zod";
+import { BackendFailure } from "../failure";
 import type { GitHubClient } from "../github/types";
 import type { ToolDefinition } from "../model/types";
 import { config } from "../config";
@@ -52,10 +54,11 @@ export interface ToolCallResult {
   outcome: ToolCallOutcome;
   /** Short, plain text for the model — never a raw error (TRD §3.2/§8.2). */
   content: string;
-  /** Present only on a successful search, for the harness's own retrieval-tracking (spec 008). */
+  /** Present only after an issue and its comments are read, for the harness's own retrieval-tracking (spec 008). */
   retrievedIssueNumbers?: number[];
   /** Present only on a successful read, for the harness's own retrieval-tracking (spec 008). */
   retrievedUrl?: string;
+  commentUrls?: string[];
 }
 
 /**
@@ -67,6 +70,8 @@ export interface ToolCallRunState {
   searchesFailed: number;
   candidatesRead: number;
   githubRateLimited: boolean;
+  toolFailed?: boolean;
+  commentsTruncated?: boolean;
 }
 
 export function createInitialToolCallRunState(): ToolCallRunState {
@@ -82,20 +87,26 @@ export function createInitialToolCallRunState(): ToolCallRunState {
  * coverage.searchesFailed's accuracy (PRD §4 failure-transparency metric).
  */
 export async function executeToolCall(
-  request: ToolCallRequest,
+  request: unknown,
   githubClient: GitHubClient,
   inputIssueNumber: number,
   runState: ToolCallRunState
 ): Promise<ToolCallResult> {
+  const parsed = ToolRequestSchema.safeParse(request);
+  if (!parsed.success) return { outcome: "refused", content: "Invalid tool arguments." };
   if (runState.githubRateLimited) {
     return { outcome: "refused", content: "GitHub is rate-limited for the rest of this run." };
   }
 
-  if (request.operation === "read") {
-    return executeReadOperation(request, githubClient, runState);
+  try {
+    if (parsed.data.operation === "read") return await executeReadOperation(parsed.data, githubClient, runState);
+    return await executeSearchOperation(parsed.data, githubClient, inputIssueNumber, runState);
+  } catch (error) {
+    runState.toolFailed = true;
+    if (parsed.data.operation === "search") runState.searchesFailed += 1;
+    if (error instanceof BackendFailure && error.code === "rate_limited") runState.githubRateLimited = true;
+    return { outcome: "error", content: "The request failed; evidence is incomplete." };
   }
-
-  return executeSearchOperation(request, githubClient, inputIssueNumber, runState);
 }
 
 async function executeReadOperation(
@@ -114,15 +125,20 @@ async function executeReadOperation(
     };
   }
 
+  runState.candidatesRead += 1;
   const issueResult = await githubClient.getIssue(request.issueNumber);
   if ("notFound" in issueResult) {
     return { outcome: "error", content: "That issue could not be found." };
   }
 
-  runState.candidatesRead += 1;
+  if (issueResult.body.length > config.issueMaxChars) throw new BackendFailure("issue_too_long");
+  const comments = await githubClient.getComments(request.issueNumber, config.maxCommentsPerIssue);
+  runState.commentsTruncated ||= comments.truncated;
   return {
     outcome: "ok",
-    content: JSON.stringify(issueResult),
+    content: JSON.stringify({ issue: issueResult, ...comments }),
+    retrievedIssueNumbers: [issueResult.number],
+    commentUrls: comments.comments.map(c => c.url),
     retrievedUrl: issueResult.url,
   };
 }
@@ -168,6 +184,10 @@ async function executeSearchOperation(
   return {
     outcome: "ok",
     content: JSON.stringify(searchResult),
-    retrievedIssueNumbers: searchResult.map((candidate) => candidate.number),
   };
 }
+
+const ToolRequestSchema = z.discriminatedUnion("operation", [
+  z.object({ operation: z.literal("read"), issueNumber: z.number().int().positive().safe() }).strict(),
+  z.object({ operation: z.literal("search"), query: z.string().trim().min(1).max(300) }).strict(),
+]);

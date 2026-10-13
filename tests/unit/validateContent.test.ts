@@ -66,7 +66,7 @@ describe("validateContent", () => {
     const { cleanedReport, removedByValidation } = validateContent(report, {
       realLabelNames: new Set(),
       retrievedIssueNumbers: new Set([10]),
-      retrievedUrls: new Set(),
+      retrievedUrls: new Set(["u1"]),
     });
 
     expect(cleanedReport.relatedIssues).toHaveLength(1);
@@ -98,7 +98,7 @@ describe("validateContent", () => {
     const report = createBaseModelReport({
       suggestedLabels: [{ name: "bug", reason: "real" }],
       relatedIssues: [
-        { number: 10, title: "t", url: "u", similarities: "s", differences: "d", assessment: "related" },
+        { number: 10, title: "t", url: "https://github.com/calcom/cal.diy/issues/10", similarities: "s", differences: "d", assessment: "related" },
       ],
       evidence: [{ observation: "o", sourceUrl: "https://github.com/calcom/cal.diy/issues/10" }],
     });

@@ -11,9 +11,10 @@
 // route wires in. The default no-op persistRun lets this file's own
 // tests run with no DB dependency at all.
 
+import { BackendFailure, failureCode } from "../failure";
 import type { ErrorCode, ModelReport, Report, StopReason } from "../../contract";
 import { config } from "../config";
-import type { GitHubClient } from "../github/types";
+import type { GitHubIssue, GitHubClient } from "../github/types";
 import { ModelReportSchema } from "../schemas/modelReport";
 import { parseIssueUrl } from "../github/urlParsing";
 import type { ModelMessage, ModelProvider } from "../model/types";
@@ -45,6 +46,9 @@ export interface PersistableToolCall {
 }
 
 export interface RunHarnessDependencies {
+  /** Internal per-run audit buffer; no raw tool text. */
+  toolCallLog?: PersistableToolCall[];
+  toolCallRunState?: ToolCallRunState;
   githubClient: GitHubClient;
   modelProvider: ModelProvider;
   /** Dependency-injected count source for the per-user rate limit (spec 007b). */
@@ -57,6 +61,7 @@ export interface RunHarnessDependencies {
     errorCode?: ErrorCode;
     report?: Report;
     toolCalls: PersistableToolCall[];
+    modelTurnsUsed?: number;
   }) => Promise<void>;
 }
 
@@ -83,11 +88,11 @@ function tryParseJson(text: string): unknown {
  * Runs one full triage: TRD §2 steps 1-9. Every exit path returns a
  * typed RunHarnessResult — never undefined/null (TRD §4 Reliability).
  */
-export async function runHarness(
+async function runHarnessInner(
   params: RunHarnessParams,
   dependencies: RunHarnessDependencies
 ): Promise<RunHarnessResult> {
-  const toolCallLog: PersistableToolCall[] = [];
+  const toolCallLog: PersistableToolCall[] = dependencies.toolCallLog ?? [];
   const persist = async (outcome: Omit<Parameters<NonNullable<RunHarnessDependencies["persistRun"]>>[0], "userId" | "issueUrl" | "toolCalls">) => {
     if (dependencies.persistRun) {
       await dependencies.persistRun({
@@ -132,8 +137,9 @@ export async function runHarness(
   const labels = await dependencies.githubClient.getLabels();
   const realLabelNames = new Set(labels.map((label) => label.name));
 
-  const retrievedIssueNumbers = new Set<number>([issueNumber]);
-  const retrievedUrls = new Set<string>([issueResult.url]);
+  const retrievedIssueNumbers = new Set<number>();
+  const retrievedIssueUrls = new Map<number, string>();
+  const retrievedUrls = new Set<string>([issueResult.url, ...commentsResult.comments.map(c => c.url)]);
 
   // ---- Step 3: build initial messages ----
   const issueContext = {
@@ -156,7 +162,7 @@ export async function runHarness(
   ];
 
   // ---- Steps 4-5: turn loop bounded by MAX_MODEL_TURNS / MAX_RUN_SECONDS ----
-  const toolCallRunState: ToolCallRunState = createInitialToolCallRunState();
+  const toolCallRunState: ToolCallRunState = dependencies.toolCallRunState ?? createInitialToolCallRunState();
   const runStartedAtMillis = Date.now();
   let modelTurnsUsed = 0;
   let finalModelReportJson: unknown;
@@ -198,29 +204,31 @@ export async function runHarness(
       break;
     }
 
+    if (toolUseBlocks.length > config.maxSearches + config.maxCandidateReads) {
+      throw new BackendFailure("model_output_invalid");
+    }
     const toolResultBlocks: ModelMessage["content"] = [];
     for (const toolUseBlock of toolUseBlocks) {
-      const requestInput = toolUseBlock.input as { operation?: "read" | "search"; issueNumber?: number; query?: string };
-      const toolResult = await executeToolCall(
-        {
-          operation: requestInput.operation ?? "read",
-          issueNumber: requestInput.issueNumber,
-          query: requestInput.query,
-        },
-        dependencies.githubClient,
-        issueNumber,
-        toolCallRunState
-      );
-
-      toolCallLog.push({
-        operation: requestInput.operation ?? "read",
-        arguments: { issueNumber: requestInput.issueNumber, query: requestInput.query },
-        outcome: toolResult.outcome,
-      });
+      if (toolUseBlock.name !== GITHUB_ISSUE_RESEARCH_TOOL.name) throw new BackendFailure("model_output_invalid");
+      const requestInput = toolUseBlock.input as Record<string, unknown> | null;
+      let entry: PersistableToolCall | undefined;
+      if (requestInput?.operation === "read" || requestInput?.operation === "search") {
+        entry = { operation: requestInput.operation,
+          arguments: requestInput.operation === "read"
+            ? { issueNumber: typeof requestInput.issueNumber === "number" && Number.isSafeInteger(requestInput.issueNumber) ? requestInput.issueNumber : null }
+            : { queryLength: typeof requestInput.query === "string" ? requestInput.query.length : 0 },
+          outcome: "error" };
+        toolCallLog.push(entry);
+      }
+      const toolResult = await executeToolCall(toolUseBlock.input, dependencies.githubClient, issueNumber, toolCallRunState);
+      if (entry) entry.outcome = toolResult.outcome;
+      if (toolResult.outcome === "error") toolCallRunState.toolFailed = true;
+      if (toolResult.commentUrls) for (const url of toolResult.commentUrls) retrievedUrls.add(url);
 
       if (toolResult.retrievedIssueNumbers) {
         for (const retrievedNumber of toolResult.retrievedIssueNumbers) {
           retrievedIssueNumbers.add(retrievedNumber);
+          if (toolResult.retrievedUrl) retrievedIssueUrls.set(retrievedNumber, toolResult.retrievedUrl);
         }
       }
       if (toolResult.retrievedUrl) {
@@ -243,7 +251,7 @@ export async function runHarness(
     let parseResult = ModelReportSchema.safeParse(finalModelReportJson);
     let formatRetriesUsed = 0;
 
-    while (!parseResult.success && formatRetriesUsed < config.maxFormatRetries) {
+    while (!parseResult.success && formatRetriesUsed < config.maxFormatRetries && modelTurnsUsed < config.maxModelTurns) {
       formatRetriesUsed += 1;
       messages.push({
         role: "user",
@@ -283,12 +291,13 @@ export async function runHarness(
     realLabelNames,
     retrievedIssueNumbers,
     retrievedUrls,
+    retrievedIssueUrls,
   });
 
   // ---- Step 8: coverage assembly from harness counters only ----
   const finalStopReason: StopReason = stoppedEarly
     ? stopReason
-    : toolCallRunState.githubRateLimited
+    : (toolCallRunState.githubRateLimited || toolCallRunState.toolFailed || toolCallRunState.searchesFailed > 0)
       ? "tool_failure"
       : "completed";
 
@@ -305,7 +314,7 @@ export async function runHarness(
       searchesRun: toolCallRunState.searchesRun,
       searchesFailed: toolCallRunState.searchesFailed,
       candidatesRead: toolCallRunState.candidatesRead,
-      commentsTruncated: commentsResult.truncated,
+      commentsTruncated: commentsResult.truncated || !!toolCallRunState.commentsTruncated,
       stopReason: finalStopReason,
       removedByValidation,
     },
@@ -313,8 +322,9 @@ export async function runHarness(
 
   // ---- Step 9: force proposedActions = [] (Phase-1 invariant), persist, return ----
   report.proposedActions = [];
+  if (finalStopReason === "tool_failure") report.limitations.push("Some GitHub requests failed. Related-issue coverage is incomplete; absence of a match is not proof that none exists.");
 
-  const finalStatus: RunHarnessResult["status"] = stoppedEarly ? "stopped" : "completed";
+  const finalStatus: RunHarnessResult["status"] = (stoppedEarly || finalStopReason === "tool_failure") ? "stopped" : "completed";
   await persist({ status: finalStatus, report });
 
   return { status: finalStatus, report };
@@ -338,4 +348,53 @@ function buildPartialModelReport(): ModelReport {
     containsEmbeddedInstructions: false,
     limitations: ["Run stopped by a limit before producing a complete report."],
   };
+}
+
+/** One deadline covers initial reads, every model turn, and format repair.
+ * Abort propagation cancels real requests; guarded adapters prevent subsequent I/O
+ * even when a test double or provider ignores cancellation. Persistence follows once.
+ */
+export async function runHarness(params: RunHarnessParams, dependencies: RunHarnessDependencies): Promise<RunHarnessResult> {
+  const controller = new AbortController();
+  const toolCalls: PersistableToolCall[] = [];
+  const toolCallRunState = createInitialToolCallRunState();
+  let modelTurnsUsed = 0;
+  let observedIssue: GitHubIssue | undefined;
+  let commentsTruncated = false;
+  let snapshot: Parameters<NonNullable<RunHarnessDependencies["persistRun"]>>[0] | undefined;
+  let fallback: ErrorCode = "github_error";
+  const guard = () => { if (controller.signal.aborted) throw new BackendFailure("timeout"); };
+  const client = dependencies.githubClient;
+  const githubClient: GitHubClient = {
+    getIssue: async n => { guard(); fallback = "github_error"; const value = await client.getIssue(n, controller.signal); if (!("notFound" in value) && !observedIssue) observedIssue = value; return value; },
+    getComments: async (n, max) => { guard(); fallback = "github_error"; const value = await client.getComments(n, max, controller.signal); commentsTruncated ||= value.truncated; return value; },
+    getLabels: () => { guard(); fallback = "github_error"; return client.getLabels(controller.signal); },
+    searchIssues: (q, max, n) => { guard(); fallback = "github_error"; return client.searchIssues(q, max, n, controller.signal); },
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<RunHarnessResult>(resolve => {
+    timer = setTimeout(() => { controller.abort(); resolve(buildErrorResult("timeout")); }, config.maxRunSeconds * 1000);
+  });
+  let result: RunHarnessResult;
+  try {
+    result = await Promise.race([timeout, runHarnessInner(params, { ...dependencies, githubClient, toolCallLog: toolCalls, toolCallRunState,
+      modelProvider: { complete: p => { guard(); modelTurnsUsed += 1; fallback = "model_output_invalid"; return dependencies.modelProvider.complete({ ...p, signal: controller.signal }); } },
+      persistRun: async outcome => { guard(); snapshot = outcome; },
+    })]);
+  } catch (error) { result = buildErrorResult(failureCode(error, fallback)); }
+  finally { clearTimeout(timer); controller.abort(); }
+  if (result.errorCode === "timeout" && observedIssue) {
+    result = { status: "stopped", report: { ...buildPartialModelReport(),
+      issue: { number: observedIssue.number, title: observedIssue.title, url: observedIssue.url, state: observedIssue.state, retrievedAt: observedIssue.retrievedAt },
+      coverage: { searchesRun: toolCallRunState.searchesRun,
+        searchesFailed: toolCallRunState.searchesFailed,
+        candidatesRead: toolCallRunState.candidatesRead,
+        commentsTruncated: commentsTruncated || !!toolCallRunState.commentsTruncated, stopReason: "time_limit", removedByValidation: [] },
+    } };
+    snapshot = undefined;
+  }
+  try {
+    await dependencies.persistRun?.({ ...(snapshot ?? { ...params, ...result, toolCalls: structuredClone(toolCalls) }), modelTurnsUsed });
+  } catch { return buildErrorResult("write_failed"); }
+  return result;
 }

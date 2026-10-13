@@ -20,7 +20,7 @@ export interface CorsCheckResult {
  * a missing Origin header) is rejected.
  */
 export function checkCorsOrigin(req: Request): CorsCheckResult {
-  const origin = req.headers.get("origin");
+  const origin = req.headers.get("origin") ?? (req.headers.get("sec-fetch-site") === "same-origin" ? new URL(req.url).origin : null);
   if (!origin) {
     return { allowed: false, origin: null };
   }
@@ -30,6 +30,7 @@ export function checkCorsOrigin(req: Request): CorsCheckResult {
 /** Builds the CORS response headers for an allowed origin. Call only when checkCorsOrigin returned allowed: true. */
 export function buildCorsHeaders(origin: string): HeadersInit {
   return {
+    Vary: "Origin",
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
@@ -42,4 +43,12 @@ export function buildCorsRejectedResponse(): Response {
     status: 403,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export function handlePreflight(req: Request): Response {
+  const check = checkCorsOrigin(req);
+  const method = req.headers.get("access-control-request-method");
+  const headers = (req.headers.get("access-control-request-headers") ?? "").split(",").map(h => h.trim().toLowerCase()).filter(Boolean);
+  if (!check.allowed || !method || !["GET", "POST"].includes(method) || headers.some(h => !["authorization", "content-type"].includes(h))) return buildCorsRejectedResponse();
+  return new Response(null, { status: 204, headers: buildCorsHeaders(check.origin!) });
 }

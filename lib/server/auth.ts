@@ -6,9 +6,8 @@
 // call both, in this order, as two separate function calls — this
 // file intentionally exposes no combined guard to call instead.
 //
-// Firebase sits behind this interface as a D9 placeholder pending
-// Ivaylo's sign-off (PRD §11/§12) — build against the interface, not
-// against "Firebase is final."
+// Firebase confirmed by Ivaylo on October 10, 2026. The allowlist
+// remains a separate check from verified identity.
 
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -31,8 +30,8 @@ function extractBearerToken(req: Request): string | null {
   if (!authorizationHeader) {
     return null;
   }
-  const [scheme, token] = authorizationHeader.split(" ");
-  if (scheme?.toLowerCase() !== "bearer" || !token) {
+  const [scheme, token, extra] = authorizationHeader.split(" ");
+  if (scheme?.toLowerCase() !== "bearer" || !token || extra !== undefined) {
     return null;
   }
   return token;
@@ -54,8 +53,8 @@ export async function verifySession(req: Request): Promise<VerifiedIdentity | nu
   }
 
   try {
-    const decodedToken = await getFirebaseAuth().verifyIdToken(token);
-    if (!decodedToken.email) {
+    const decodedToken = await getFirebaseAuth().verifyIdToken(token, true);
+    if (!decodedToken.email || decodedToken.email_verified !== true) {
       return null;
     }
     return { uid: decodedToken.uid, email: decodedToken.email };
