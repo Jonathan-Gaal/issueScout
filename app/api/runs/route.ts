@@ -19,6 +19,14 @@ const DEFAULT_RUNS_LIST_LIMIT = 20;
 
 const CreateRunRequestBodySchema = z.object({ issueUrl: z.string() }).strict();
 
+export async function OPTIONS(req: Request): Promise<Response> {
+  const corsCheck = checkCorsOrigin(req);
+  if (!corsCheck.allowed) {
+    return buildCorsRejectedResponse();
+  }
+  return new Response(null, { status: 204, headers: buildCorsHeaders(corsCheck.origin as string) });
+}
+
 export async function POST(req: Request): Promise<Response> {
   const corsCheck = checkCorsOrigin(req);
   if (!corsCheck.allowed) {

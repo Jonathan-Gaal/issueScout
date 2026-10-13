@@ -14,6 +14,14 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+export async function OPTIONS(req: Request): Promise<Response> {
+  const corsCheck = checkCorsOrigin(req);
+  if (!corsCheck.allowed) {
+    return buildCorsRejectedResponse();
+  }
+  return new Response(null, { status: 204, headers: buildCorsHeaders(corsCheck.origin as string) });
+}
+
 export async function GET(req: Request, { params }: RouteParams): Promise<Response> {
   const corsCheck = checkCorsOrigin(req);
   if (!corsCheck.allowed) {
