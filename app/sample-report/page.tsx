@@ -1,2 +1,2 @@
-import Landing from "../../components/Landing";
-export default function Page() { return <Landing view="explore" />; }
+import { redirect } from "next/navigation";
+export default function Page() { redirect("/demo/report"); }
