@@ -1,26 +1,6 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#19202b;background:#f0f2f6;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button,a{-webkit-tap-highlight-color:transparent}button{cursor:pointer}a{color:inherit;text-decoration:none}button:disabled{cursor:not-allowed}h1,h2,h3,p{margin-top:0}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #4089ff;outline-offset:5px}::selection{background:#b3d0ff;color:#102b50}.skip{position:absolute;left:20px;top:-100px;z-index:100;padding:12px 18px;background:#fff;color:#111;border-radius:8px}.skip:focus{top:12px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-size:22px;font-weight:700;letter-spacing:-1px}.brand-icon{display:inline-grid;place-items:center;width:31px;height:31px;border:1px solid #ffffff35;border-radius:10px;background:#ffffff12;color:inherit;font-family:Georgia,serif;font-style:italic;font-size:24px}
+.motion-toggle{border:0;background:transparent;padding:4px;font-size:11px;color:inherit}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

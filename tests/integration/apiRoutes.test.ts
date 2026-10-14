@@ -10,7 +10,7 @@ interface FakeUser {
 
 const USER_A: FakeUser = { uid: "user-a", email: "maintainer-a@example.com" };
 const USER_B: FakeUser = { uid: "user-b", email: "maintainer-b@example.com" };
-const NOT_ALLOWLISTED_USER: FakeUser = { uid: "user-c", email: "not-allowed@example.com" };
+const NEW_USER: FakeUser = { uid: "user-c", email: "new-user@example.com" };
 
 const FAKE_RUN_OWNED_BY_A = {
   id: "run-owned-by-a",
@@ -47,10 +47,10 @@ function createRequest(options: {
 const TOKEN_TO_USER: Record<string, FakeUser> = {
   "token-user-a": USER_A,
   "token-user-b": USER_B,
-  "token-not-allowlisted": NOT_ALLOWLISTED_USER,
+  "token-new-user": NEW_USER,
 };
 
-async function setUpMocks(options: { allowedEmails: string[] }) {
+async function setUpMocks() {
   process.env.CORS_ALLOWED_ORIGINS = ALLOWED_ORIGIN;
 
   vi.doMock("../../lib/server/auth", () => ({
@@ -59,7 +59,6 @@ async function setUpMocks(options: { allowedEmails: string[] }) {
       const token = authHeader?.split(" ")[1];
       return token ? TOKEN_TO_USER[token] ?? null : null;
     }),
-    isAllowlisted: vi.fn((email: string) => options.allowedEmails.includes(email)),
   }));
 
   vi.doMock("../../lib/server/db/runs", () => ({
@@ -110,7 +109,7 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
   });
 
   it("(a) IDOR test: user A's run requested under user B's session returns not_found, never the run's content", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email, USER_B.email] });
+    await setUpMocks();
     const { GET } = await import("../../app/api/runs/[id]/route");
 
     const request = createRequest({
@@ -129,7 +128,7 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
   });
 
   it("(b) the same run, requested by its actual owner (user A), returns successfully", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email, USER_B.email] });
+    await setUpMocks();
     const { GET } = await import("../../app/api/runs/[id]/route");
 
     const request = createRequest({
@@ -147,7 +146,7 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
   });
 
   it("(c) a request from a disallowed Origin is rejected on GET /api/runs/:id, with no Access-Control-Allow-Origin header for that origin", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email] });
+    await setUpMocks();
     const { GET } = await import("../../app/api/runs/[id]/route");
 
     const request = createRequest({
@@ -164,7 +163,7 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
   });
 
   it("(c) a request from a disallowed Origin is rejected on GET /api/runs", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email] });
+    await setUpMocks();
     const { GET } = await import("../../app/api/runs/route");
 
     const request = createRequest({
@@ -181,7 +180,7 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
   });
 
   it("(c) a request from a disallowed Origin is rejected on POST /api/runs", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email] });
+    await setUpMocks();
     const { POST } = await import("../../app/api/runs/route");
 
     const request = createRequest({
@@ -198,43 +197,18 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).not.toBe(DISALLOWED_ORIGIN);
   });
 
-  it("(d) a signed-in-but-not-allowlisted request is rejected distinctly from an unauthenticated request", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email] });
-    const { GET } = await import("../../app/api/runs/[id]/route");
-
-    const notAllowlistedResponse = await GET(
-      createRequest({
-        method: "GET",
-        url: `https://api.example.com/api/runs/${FAKE_RUN_OWNED_BY_A.id}`,
-        origin: ALLOWED_ORIGIN,
-        bearerToken: "token-not-allowlisted",
-      }),
-      { params: Promise.resolve({ id: FAKE_RUN_OWNED_BY_A.id }) }
-    );
-
-    const unauthenticatedResponse = await GET(
-      createRequest({
-        method: "GET",
-        url: `https://api.example.com/api/runs/${FAKE_RUN_OWNED_BY_A.id}`,
-        origin: ALLOWED_ORIGIN,
-      }),
-      { params: Promise.resolve({ id: FAKE_RUN_OWNED_BY_A.id }) }
-    );
-
-    // Both are rejected (401 unauthorized in this spec's mapping), but
-    // confirmed as two *separate* code paths — both verifySession and
-    // isAllowlisted are actually invoked, not short-circuited after
-    // only one check.
-    expect(notAllowlistedResponse.status).toBe(401);
-    expect(unauthenticatedResponse.status).toBe(401);
-
-    const { verifySession, isAllowlisted } = await import("../../lib/server/auth");
-    expect(verifySession).toHaveBeenCalled();
-    expect(isAllowlisted).toHaveBeenCalledWith(NOT_ALLOWLISTED_USER.email);
+  it("accepts a new verified public user while rejecting an anonymous request", async () => {
+    await setUpMocks();
+    const { GET } = await import("../../app/api/runs/route");
+    const response = await GET(createRequest({ method: "GET", url: "https://api.example.com/api/runs", origin: ALLOWED_ORIGIN, bearerToken: "token-new-user" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).runs).toEqual([]);
+    const anonymous = await GET(createRequest({ method: "GET", url: "https://api.example.com/api/runs", origin: ALLOWED_ORIGIN }));
+    expect(anonymous.status).toBe(401);
   });
 
   it("GET /api/runs?limit= returns only the requesting user's own runs", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email, USER_B.email] });
+    await setUpMocks();
     const { GET } = await import("../../app/api/runs/route");
 
     const response = await GET(
@@ -252,7 +226,7 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
   });
 
   it("an unauthenticated malformed POST body returns unauthorized, not invalid_url (auth checked before input validation)", async () => {
-    await setUpMocks({ allowedEmails: [USER_A.email] });
+    await setUpMocks();
     const { POST } = await import("../../app/api/runs/route");
 
     const response = await POST(

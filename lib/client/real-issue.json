@@ -1,0 +1,8 @@
+{
+  "number": 30264,
+  "title": "Add-to-calendar links truncate event names containing & or #",
+  "state": "open",
+  "html_url": "https://github.com/calcom/cal.diy/issues/30264",
+  "body": "### Issue Summary\n\nThe \"Add to calendar\" links on the booking success page do not URI-encode the event name (Google Calendar and Microsoft Office) or the event name and description (Microsoft Outlook, which uses `encodeURI`). Reserved characters such as `&`, `#`, `+` and `=` end the query parameter early.\n\n### Steps to Reproduce\n\n1. Create an event type with the event name `Q&A #1` and a description that contains `a&b=c`.\n2. Book the event.\n3. On the booking success page, select \"Google Calendar\", \"Microsoft Office\" or \"Microsoft Outlook\".\n\n### Actual Results\n\n- The Google Calendar link contains `text=Q&A #1`, so the title is `Q` and `A` becomes a separate, unknown parameter.\n- The Outlook link uses `encodeURI`, which keeps `&`, `#`, `+` and `=`, so the same truncation happens for the subject and the body.\n\n### Expected Results\n\n- The calendar form opens with the full event name and description.\n\n### Technical details\n\n- Code: `packages/features/bookings/lib/getCalendarLinks.ts`, functions `buildGoogleCalendarLink`, `buildMicrosoftOfficeLink` and `buildMicrosoftOutlookLink`.\n- The description and location are already encoded with `encodeURIComponent` in the Google Calendar and Microsoft Office links.\n\n### Evidence\n\nA unit test that parses each generated link with `URLSearchParams` fails on current `main` for the event name `Q&A #1 + 100% \u00e9` and passes with `encodeURIComponent` applied.",
+  "retrievedAt": "2026-10-14T17:05:31.582311+00:00"
+}

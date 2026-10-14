@@ -30,9 +30,8 @@ export interface AppConfig {
   maxOutputTokens: number;
   runsPerUserPerHour: number;
 
-  // D9: auth provider + allowlist.
+  // D9: auth provider.
   authProvider: AuthProviderName;
-  allowedUserEmails: string[];
 
   // CORS — non-wildcard explicit allowlist (PRD §9 finding #5). This is
   // a hard security requirement, not an open product decision, so it
@@ -50,16 +49,6 @@ export interface AppConfig {
   maxModelTurns: number;
   maxRunSeconds: number;
   maxFormatRetries: number;
-}
-
-function parseAllowedUserEmails(rawValue: string | undefined): string[] {
-  if (!rawValue) {
-    return [];
-  }
-  return rawValue
-    .split(",")
-    .map((email) => email.trim())
-    .filter((email) => email.length > 0);
 }
 
 function parseCorsAllowedOrigins(rawValue: string | undefined): string[] {
@@ -98,8 +87,6 @@ export const config: AppConfig = {
 
   // D9: Firebase confirmed by Ivaylo on October 10, 2026.
   authProvider: (process.env.AUTH_PROVIDER as AuthProviderName) ?? "firebase",
-  // D9 — CONFIRM BEFORE SHIPPING: finalize the allowlist membership.
-  allowedUserEmails: parseAllowedUserEmails(process.env.ALLOWED_USER_EMAILS),
 
   corsAllowedOrigins: parseCorsAllowedOrigins(process.env.CORS_ALLOWED_ORIGINS),
 

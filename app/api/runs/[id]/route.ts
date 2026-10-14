@@ -8,7 +8,7 @@ export { handlePreflight as OPTIONS } from "../../../../lib/server/cors";
 
 import { NextResponse } from "next/server";
 import { buildApiErrorBody, getErrorStatus } from "../../../../lib/server/errors";
-import { isAllowlisted, verifySession } from "../../../../lib/server/auth";
+import { verifySession } from "../../../../lib/server/auth";
 import { buildCorsHeaders, buildCorsRejectedResponse, checkCorsOrigin } from "../../../../lib/server/cors";
 import { runs } from "../../../../lib/server/db/runs";
 
@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: RouteParams): Promise<Respon
   const corsHeaders = buildCorsHeaders(corsCheck.origin as string);
 
   const identity = await verifySession(req);
-  if (!identity || !isAllowlisted(identity.email)) {
+  if (!identity) {
     return NextResponse.json(buildApiErrorBody("unauthorized"), {
       status: getErrorStatus("unauthorized"),
       headers: corsHeaders,

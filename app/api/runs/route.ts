@@ -12,7 +12,7 @@ export { handlePreflight as OPTIONS } from "../../../lib/server/cors";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buildApiErrorBody, getErrorStatus } from "../../../lib/server/errors";
-import { isAllowlisted, verifySession } from "../../../lib/server/auth";
+import { verifySession } from "../../../lib/server/auth";
 import { buildCorsHeaders, buildCorsRejectedResponse, checkCorsOrigin } from "../../../lib/server/cors";
 import { runs } from "../../../lib/server/db/runs";
 import { runHarness } from "../../../lib/server/harness/runHarness";
@@ -31,7 +31,7 @@ export async function POST(req: Request): Promise<Response> {
   const corsHeaders = buildCorsHeaders(corsCheck.origin as string);
 
   const identity = await verifySession(req);
-  if (!identity || !isAllowlisted(identity.email)) {
+  if (!identity) {
     return NextResponse.json(buildApiErrorBody("unauthorized"), {
       status: getErrorStatus("unauthorized"),
       headers: corsHeaders,
@@ -102,7 +102,7 @@ export async function GET(req: Request): Promise<Response> {
   const corsHeaders = buildCorsHeaders(corsCheck.origin as string);
 
   const identity = await verifySession(req);
-  if (!identity || !isAllowlisted(identity.email)) {
+  if (!identity) {
     return NextResponse.json(buildApiErrorBody("unauthorized"), {
       status: getErrorStatus("unauthorized"),
       headers: corsHeaders,
