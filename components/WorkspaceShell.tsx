@@ -39,7 +39,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     </aside>}
     <div className="workspace-body"><header className="workspace-topbar">{entry ? <Link href="/" className="brand">IssueScout</Link> : <span>{demo ? "Try the experience" : "Issue research workspace"}</span>}<div>{user ? <><span className="session-email">{user.email}</span><button onClick={logout}>Sign out</button></> : <><Link href={path === "/signin" ? "/signup" : "/signin"}>{path === "/signin" ? "Sign up" : "Sign in"}</Link>{entry && <Link href="/demo">Try demo</Link>}</>}</div></header>
     {error && <p className="workspace-alert" role="alert">{error}</p>}
-    {demo && <div className="demo-banner"><strong>Sample mode</strong> Illustrative data only. No GitHub requests, no saved runs.</div>}
+    {demo && <div className="demo-banner"><strong>Sample mode</strong> Sample reports are illustrative. The real-issue preview is a saved GitHub snapshot; no AI research runs here.</div>}
     <main key={path} className="workspace-main" id="workspace-main">{children}</main>
     <footer className="workspace-footer"><span>IssueScout · Built by Ivaylo & Jonathan</span><button className="motion-toggle" aria-pressed={motion} onClick={() => setMotion(!motion)}>{motion ? "Pause" : "Enable"} animations</button><Link href="/trust">Trust & safety</Link></footer></div>
   </div></SessionContext.Provider>;
