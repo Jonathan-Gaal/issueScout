@@ -63,3 +63,7 @@ No pricing, team administration, billing, integrations marketplace, bulk triage,
 ## Visual rebuild — October 14
 
 Replaced the accumulated public styles with the Studio design system. The short homepage pairs a clear signup/sample choice with one explicitly fictional report preview. Public informational pages, authentication, the workspace, history and reports share typography, glass surfaces and color tokens. Motion is limited to entrances and a floating preview, with pause and reduced-motion support. Authentication and API behavior are unchanged.
+
+## Research pass report presentation
+
+The report begins with a boarding-pass-inspired glass card: dark brand/status strip, issue title and number stub, summary, then category, suggested priority and labels. Native disclosures expose the reason for each decision; priority uncertainty is flagged even while its reason is collapsed. Evidence, missing information, related issues, next step and limitations remain below in their established order, followed by separate system coverage. The barcode motif is decorative and hidden from assistive technology. No routing team, deadline or confidence score is invented. The information hierarchy takes inspiration from the ticket example in Will's TriagePilot reference.
