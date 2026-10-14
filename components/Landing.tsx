@@ -36,8 +36,8 @@ export default function Landing({ view = "home" }: { view?: PageView }) {
           <div className="eyebrow">FOR GITHUB PROJECT MAINTAINERS</div>
           <h1>Understand an issue.<br /><em>Decide what’s next.</em></h1>
           <p>Paste a GitHub issue link. Get a research report with supporting evidence, missing details, related issues, and a suggested next step.</p>
-          <div className="hero-actions"><Link href="/workspace" className="button primary">Research an issue</Link><Link href="/demo/report" className="text-link">Try a sample</Link></div>
-          <div className="hero-note">Sign in for live research. No sign-in needed for the sample.</div>
+          <div className="hero-actions"><Link href="/signin" className="button primary">Sign in</Link><Link href="/demo" className="text-link">Try demo</Link></div>
+          <div className="hero-note">Invite-only access. No account needed to try the demo.</div>
           <p className="home-scope">Read-only. Nothing changes on GitHub.</p>
         </div>
       </section>}
