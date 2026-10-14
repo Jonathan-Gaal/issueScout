@@ -28,7 +28,7 @@ export default function Landing({ view = "home" }: { view?: "home" | "how" | "pr
         <div className="studio-copy">
           <span className="studio-eyebrow"><span aria-hidden="true" /> A CLEARER FIRST PASS</span>
           <h1>Less noise.<br /><span>More insight.</span></h1>
-          <p>One GitHub issue. The context you need to decide what comes next.</p>
+          <p>Paste a GitHub issue link. Get a clear research report and a suggested next step.</p>
           <div className="studio-actions"><Link href="/signup" className="studio-button">Get started</Link><Link href="/demo" className="studio-button studio-secondary">See sample</Link></div>
           <small>Create an account with Google. Or explore without one.</small>
         </div>

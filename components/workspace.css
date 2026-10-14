@@ -10,3 +10,5 @@
 .entry-layout .workspace-topbar .brand{border:0;background:transparent;padding:0;font-size:23px;color:inherit}
 .report-reading-guide{font-size:14px;line-height:1.7;max-width:680px;color:inherit;opacity:.8;margin-top:24px}
 @media(max-width:760px){.entry-layout .workspace-main{padding-top:28px}.entry-layout .workspace-topbar>div{gap:8px}}
+
+.paste-steps{list-style:none;padding:0;margin:22px 0 28px;display:grid;gap:14px}.paste-steps li{display:flex;gap:12px;align-items:flex-start}.paste-steps li>span{display:grid;place-items:center;flex-shrink:0;width:24px;height:24px;border:1px solid #708aaf35;border-radius:50%;font-size:11px;color:#4e6d97;background:#ffffff35}.paste-steps li p{margin:0;font-size:12px;line-height:1.8}.paste-preview{margin:24px 0;border-top:1px solid #708aaf26;padding-top:24px}.paste-preview input:disabled{opacity:.75;cursor:not-allowed}.paste-preview .workspace-text-link{margin:0 0 8px}.paste-preview small{margin-bottom:10px}
