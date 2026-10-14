@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import { clientConfig } from "../lib/client/config";
 import { useEffect, useState } from "react";
 
 const examples = [
@@ -26,21 +25,18 @@ export default function Landing({ view = "home" }: { view?: PageView }) {
     <div className="ambient" aria-hidden="true"><i /><i /><i /></div>
     <nav className="nav glass" aria-label="Main navigation">
       <Link href="/" className="brand"><span className="brand-icon">i</span> IssueScout</Link>
-      <button className="menu-toggle" aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? "Close menu" : "Menu"}</button>
+      {view !== "home" && <><button className="menu-toggle" aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? "Close menu" : "Menu"}</button>
       <div id="site-menu" className={`site-menu ${menuOpen ? "is-open" : ""}`}>
         {([["how", "/how-it-works", "How it works"], ["principles", "/trust", "Trust & safety"]] as const).map(([key, href, label]) => <Link key={key} href={href} aria-current={view === key ? "page" : undefined} onClick={() => setMenuOpen(false)}>{label}</Link>)}
-        {view !== "home" && <><Link href="/signup">Sign up</Link><Link href="/signin">Sign in</Link></>}
-      </div>
+        <Link href="/signup">Sign up</Link><Link href="/signin">Log in</Link>
+      </div></>}
     </nav>
     <main id="main">
       {view === "home" && <section className="hero focused-hero">
         <div className="hero-copy">
-          <div className="eyebrow">FOR GITHUB PROJECT MAINTAINERS</div>
-          <h1>Understand an issue.<br /><em>Decide what’s next.</em></h1>
-          <p>Paste a GitHub issue link. Get a research report with supporting evidence, missing details, related issues, and a suggested next step.</p>
-          <div className="hero-actions"><Link href="/signup" className="button primary">Sign up</Link><Link href="/signin" className="text-link">Sign in</Link><Link href="/demo" className="text-link">Try demo</Link></div>
-          <div className="hero-note">Open to everyone. No account needed to try the demo.</div>
-          <p className="home-scope">Currently supports {clientConfig.approvedRepo}. Read-only: nothing changes on GitHub.</p>
+          <h1>A clearer view.<br /><em>Of your next issue.</em></h1>
+          <p>Turn a GitHub issue into a clear research report.</p>
+          <div className="hero-actions"><Link href="/signup" className="button primary">Sign up</Link><Link href="/signin" className="text-link">Log in</Link><Link href="/demo" className="text-link">See sample</Link></div>
         </div>
       </section>}
       {view === "how" && <section id="how" className="how section"><div className="section-heading"><div><span className="eyebrow">01 / FROM QUESTION TO CLARITY</span><h2>One link.<br /><em>A clearer next step.</em></h2></div><p>A focused workflow for the person<br />who has to decide what happens next.</p></div><div className="steps">{[
