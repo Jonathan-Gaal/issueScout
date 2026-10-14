@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Report } from "../lib/contract";
 import { sampleIssue } from "../lib/client/sample-report";
 import "./sample-walkthrough.css";
@@ -9,20 +9,8 @@ const steps = ["Read", "Compare", "Classify", "Prioritize", "Recommend"];
 
 export default function SampleWalkthrough({ report }: { report: Report }) {
   const [step, setStep] = useState(4);
-  const [playing, setPlaying] = useState(false);
-  const root = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!playing || step === steps.length - 1) return;
-    const timer = window.setInterval(() => {
-
-      setStep(previous => previous < steps.length - 1 ? previous + 1 : previous);
-    }, 3000);
-    return () => window.clearInterval(timer);
-  }, [playing, step]);
-
   const partial = report.coverage.stopReason !== "completed";
-  return <section ref={root} className="sample-walkthrough" aria-label="Illustrated sample walkthrough">
+  return <section className="sample-walkthrough" aria-label="Illustrated sample walkthrough">
     <header className="walk-masthead"><span><b>i</b> IssueScout <small>RESEARCH PASS</small></span><span>{partial ? "PARTIAL SAMPLE REPORT" : "SAMPLE REPORT"}</span></header>
     <div className="walk-issue-heading"><span className="walk-result-label">ISSUE #{report.issue.number}</span><h1>{report.issue.title}</h1></div>
     {partial && <div className="walk-partial" role="status"><strong>Partial: related-issue comparison stopped early.</strong><p>The reported time mismatch is available to review. Further comparison was not completed, so other related reports may be missing.</p></div>}
@@ -44,29 +32,26 @@ export default function SampleWalkthrough({ report }: { report: Report }) {
       </section>
       <aside className="scene-assessment" aria-label="IssueScout assessment and next step">
         <div className="walk-eyebrow"><span>ISSUESCOUT’S ASSESSMENT</span></div>
-        <h2>The times don’t match.</h2><span className="walk-priority-badge">{report.priority.replaceAll("_", " ")}</span><p>The customer could arrive at the wrong time. We haven’t verified which time is correct.</p>
-        <div className="scene-next"><span className="walk-result-label">NEXT STEP</span><h3>Confirm both timezones.</h3><p>Compare the booking and email settings before deciding whether the appointment itself is wrong.</p></div>
+        <h2>{report.category.replaceAll("_", " ")}</h2><span className="walk-priority-badge">{report.priority.replaceAll("_", " ")}</span><p>{report.priorityEvidence}</p>
+        <details className="assessment-detail"><summary>Why this classification</summary><p>{report.categoryReason}</p></details>
+        <div className="output-labels" aria-label="Suggested sample labels">{report.suggestedLabels.map(label => <details key={label.name}><summary>{label.name}</summary><p>{label.reason}</p></details>)}</div>
+        <div className="scene-next"><span className="walk-result-label">RECOMMENDED NEXT STEP</span><p>{report.recommendedNextStep}</p></div>
         <div className="scene-unknowns"><span className="walk-result-label">DETAILS TO CHECK</span><ul>{report.missingInformation.map(item => <li key={item}><span aria-hidden="true">?</span>{item}</li>)}</ul></div>
-        <small className="scene-hypothesis">Timezone handling is a possible explanation, not a confirmed cause.</small>
+        <small className="scene-hypothesis">{report.priorityUncertainty}</small>
       </aside>
     </div>
-    <section className="model-output-board" aria-label="What the model produces">
-      <header><span className="walk-result-label">THE MODEL’S OUTPUT · PREPARED SAMPLE</span><h2>From a report to a decision.</h2><p>Each suggestion has a reason. Each uncertainty stays visible.</p></header>
-      <div className="output-grid">
-        <section className="output-tile output-summary"><span className="output-icon" aria-hidden="true">01</span><div><span className="walk-result-label">SUMMARY</span><h3>One lesson. Two times.</h3><p>{report.summary}</p></div></section>
-        <section className="output-tile"><span className="output-icon" aria-hidden="true">02</span><div><span className="walk-result-label">CLASSIFICATION</span><h3>{report.category.replaceAll("_", " ")}</h3><p>{report.categoryReason}</p><div className="output-labels" aria-label="Suggested sample labels">{report.suggestedLabels.map(label => <details key={label.name}><summary>{label.name}</summary><p>{label.reason}</p></details>)}</div><small>Sample labels. Live suggestions must match the repository’s existing labels.</small></div></section>
-        <section className="output-tile output-priority"><span className="output-icon" aria-hidden="true">03</span><div><span className="walk-result-label">SUGGESTED PRIORITY</span><h3>{report.priority.replaceAll("_", " ")}</h3><div className="output-priority-signal"><span aria-hidden="true">!</span><strong>Impact needs confirmation</strong></div><p>{report.priorityEvidence}</p><details><summary>What remains uncertain</summary><p>{report.priorityUncertainty}</p></details></div></section>
-        <section className="output-tile"><span className="output-icon" aria-hidden="true">04</span><div><span className="walk-result-label">SUPPORTING EVIDENCE</span><h3>Trace the finding to its source.</h3>{report.evidence.map((item,index)=><blockquote key={index}><span className="output-source">SOURCE {index+1} · SAMPLE ISSUE #{report.issue.number}</span><p>{item.observation}</p></blockquote>)}<small>Illustrative evidence. A live report links to the retrieved GitHub source.</small></div></section>
-        <section className="output-tile"><span className="output-icon" aria-hidden="true">05</span><div><span className="walk-result-label">RELATED ISSUES</span><h3>No candidates in this sample.</h3><div className="output-related-visual" aria-hidden="true"><span>#{report.issue.number}</span><i/><span>?</span></div><p>No related issues are included. This does not prove that none exist.</p><small>A live report explains similarities and differences for each retrieved candidate.</small></div></section>
-        <section className="output-tile output-gaps"><span className="output-icon" aria-hidden="true">06</span><div><span className="walk-result-label">MISSING INFORMATION</span><h3>{report.missingInformation.length} details to confirm.</h3><ul>{report.missingInformation.map(item=><li key={item}><span aria-hidden="true">?</span>{item}</li>)}</ul><small>These gaps prevent a confident diagnosis.</small></div></section>
+    <section className="research-overview" aria-label="Research evidence and coverage">
+      <header><span className="walk-result-label">BEHIND THE ASSESSMENT</span><h2>What supports this report?</h2><p>Prepared sample evidence and counts. No research was performed for this example.</p></header>
+      <div className="research-pair">
+        <section className="research-evidence"><h3>Source evidence</h3>{report.evidence.length ? report.evidence.map((item,index)=><blockquote key={index}><span className="output-source">OBSERVATION {index+1} · SAMPLE ISSUE #{report.issue.number}</span><p>{item.observation}</p></blockquote>) : <p>No supporting observations were included.</p>}<small>Illustrative source text. Live evidence links to retrieved GitHub content.</small></section>
+        <section className="research-related"><h3>Related-issue comparison</h3>{report.relatedIssues.length ? report.relatedIssues.map(item=><article key={item.number}><span className="walk-priority-badge">{item.assessment.replaceAll("_"," ")}</span><h4>#{item.number} · {item.title}</h4><dl><dt>Similarities</dt><dd>{item.similarities}</dd><dt>Differences</dt><dd>{item.differences}</dd></dl></article>) : <><div className="related-empty"><strong>0</strong><span>related issues included</span></div><p>No matches are presented in this sample report. This does not establish that no related issues exist.</p></>}<small>Reading a candidate does not automatically make it a duplicate.</small></section>
       </div>
-      <section className="output-final"><div><span className="walk-result-label">07 · RECOMMENDED NEXT STEP</span><h3>Investigate before deciding.</h3><p>{report.recommendedNextStep}</p></div><div className="output-boundary"><span aria-hidden="true">◎</span><strong>You make the decision.</strong><p>IssueScout researches and suggests. It has not fixed the bug or changed GitHub.</p></div></section>
-      <details className="output-limits"><summary>Limitations of this sample</summary><ul>{report.limitations.map(item=><li key={item}>{item}</li>)}</ul></details>
+      <section className="research-chart" aria-label="Illustrative research counts"><div className="chart-heading"><div><span className="walk-result-label">ILLUSTRATIVE COUNTS</span><h3>Research activity</h3></div><span className="walk-priority-badge">{report.coverage.stopReason.replaceAll("_", " ")}</span></div><p>Bar length represents a count—not confidence, accuracy, or percentage complete.</p><div className="count-bars">{[{label:"Searches run",value:report.coverage.searchesRun},{label:"Searches failed",value:report.coverage.searchesFailed},{label:"Candidates read",value:report.coverage.candidatesRead},{label:"Related issues included",value:report.relatedIssues.length}].map(item=><div className="count-row" key={item.label}><span>{item.label}</span><div className="count-track" aria-hidden="true"><span style={{width:`${item.value / Math.max(3,report.coverage.searchesRun,report.coverage.searchesFailed,report.coverage.candidatesRead,report.relatedIssues.length)*100}%`}} /></div><strong>{item.value}</strong></div>)}</div><div className="chart-context"><span>{report.coverage.commentsTruncated ? "Some comments were omitted." : "No comment truncation recorded."}</span><span>{partial ? "Further research stopped before completion." : "Completed does not mean exhaustive."}</span></div></section>
+      <details className="research-disclosure"><summary>Summary and limitations</summary><p>{report.summary}</p><ul>{report.limitations.map(item=><li key={item}>{item}</li>)}</ul>{report.coverage.removedByValidation.length > 0 && <><h3>Removed during validation</h3><ul>{report.coverage.removedByValidation.map(item=><li key={item}>{item}</li>)}</ul></>}{report.containsEmbeddedInstructions && <p>Embedded instructions were detected in the issue text and must be treated as content, not trusted instructions.</p>}</details>
     </section><footer className="walk-footer"><span>No live AI activity. No GitHub changes.</span><span>You decide what happens next.</span></footer>
-    <details className="walk-explanation"><summary>See how this was assessed</summary>
-    <div className="walk-controls"><nav aria-label="Walkthrough steps">{steps.map((label, index) => <button key={label} aria-pressed={step === index} className={step >= index ? "walk-reached" : ""} onClick={() => { setStep(index); setPlaying(false); }}><span>{index + 1}</span>{label}</button>)}</nav><button className="walk-play" onClick={() => { if (step === 4) setStep(0); setPlaying(previous => step === 4 ? true : !previous); }}>{step === 4 ? "Replay explanation" : playing ? "Pause" : "Play walkthrough"}</button></div>
-
-      <div className="walk-explanation-content" aria-live="polite"><span className="walk-result-label">{step + 1} / 5 · {steps[step]}</span><p>{[sampleIssue.description, "Compare the reported booking time with the email: 3:00 PM and 2:00 PM differ.", report.categoryReason, report.priorityEvidence, report.recommendedNextStep][step]}</p>{step === 2 && <div className="walk-tags">{report.suggestedLabels.map(label => <span key={label.name}>{label.name}</span>)}</div>}</div>
+    <details className="walk-explanation"><summary>Illustrative walkthrough · choose a step</summary>
+      <div className="walk-controls"><nav aria-label="Illustrative walkthrough steps">{steps.map((label,index)=><button key={label} aria-pressed={step===index} onClick={()=>setStep(index)}><span>{index+1}</span>{label}</button>)}</nav></div>
+      <div className="walk-explanation-content" aria-live="polite"><span className="walk-result-label">{step+1} / 5 · {steps[step]}</span><p>{[sampleIssue.description,"Compare the displayed times. Their difference alone does not establish a cause.",report.categoryReason,report.priorityEvidence,report.recommendedNextStep][step]}</p><small>This explains the sample. It is not a recorded model or tool trace.</small></div>
     </details>
   </section>;
 }
