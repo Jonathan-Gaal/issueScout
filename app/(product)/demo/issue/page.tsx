@@ -3,7 +3,7 @@ import issue from "../../../../lib/client/real-issue.json";
 import "../../../../components/report-view.css";
 
 export default function Page() {
-  return <><div className="report-toolbar"><Link href="/demo">Back to workspace</Link><a className="workspace-button secondary" href={issue.html_url} target="_blank" rel="noopener noreferrer">Open on GitHub</a></div>
+  return <><div className="report-toolbar"><Link className="workspace-button" href="/demo/report">View sample report</Link><a className="workspace-button secondary" href={issue.html_url} target="_blank" rel="noopener noreferrer">Open on GitHub</a></div>
     <article className="report-view" aria-label="Real GitHub issue">
       <p className="rv-sample-note">Real GitHub data · Retrieved {new Date(issue.retrievedAt).toLocaleString("en-US", {dateStyle:"medium", timeStyle:"short", timeZone:"UTC"})} UTC · Saved snapshot</p>
       <div className="research-pass"><div className="pass-masthead"><span><span className="pass-logo" aria-hidden="true">i</span> IssueScout <span className="pass-edition">SOURCE ISSUE</span></span><span className="rv-status">GitHub · {issue.state}</span></div>

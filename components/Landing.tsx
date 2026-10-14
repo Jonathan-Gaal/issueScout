@@ -29,7 +29,7 @@ export default function Landing({ view = "home" }: { view?: "home" | "how" | "pr
           <span className="studio-eyebrow"><span aria-hidden="true" /> A CLEARER FIRST PASS</span>
           <h1>Less noise.<br /><span>More insight.</span></h1>
           <p>Paste a GitHub issue link. Get a clear research report and a suggested next step.</p>
-          <div className="studio-actions"><Link href="/signup" className="studio-button">Get started</Link><Link href="/demo" className="studio-button studio-secondary">See sample</Link></div>
+          <div className="studio-actions"><Link href="/signup" className="studio-button">Get started</Link><Link href="/demo/report" className="studio-button studio-secondary">See sample</Link></div>
           <small>Create an account with Google. Or explore without one.</small>
         </div>
         <div className="studio-stage" aria-label="Illustrative research report preview">
@@ -49,7 +49,7 @@ export default function Landing({ view = "home" }: { view?: "home" | "how" | "pr
         <span className="studio-eyebrow">{view === "how" ? "THE WORKFLOW" : "BUILT FOR YOUR JUDGMENT"}</span>
         <h1>{view === "how" ? <>From issue.<br /><span>To understanding.</span></> : <>Useful insight.<br /><span>Visible boundaries.</span></>}</h1>
         <div className="studio-info-grid">{(view === "how" ? workflow : principles).map(([number, title, copy]) => <article key={number}><span className="preview-label">{number}</span><h2>{title}</h2><p>{copy}</p></article>)}</div>
-        <div className="studio-actions"><Link href="/demo" className="studio-button">See sample</Link><Link href="/signup" className="studio-button studio-secondary">Create an account</Link></div>
+        <div className="studio-actions"><Link href="/demo/report" className="studio-button">See sample</Link><Link href="/signup" className="studio-button studio-secondary">Create an account</Link></div>
       </section>}
     </main>
     <footer className="studio-footer"><span>READ-ONLY BY DESIGN</span><div><Link href="/trust">Trust & safety</Link><button aria-pressed={!motion} onClick={() => setMotion(value => !value)}>{motion ? "Pause motion" : "Enable motion"}</button></div></footer>
