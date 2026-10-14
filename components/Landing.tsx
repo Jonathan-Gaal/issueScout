@@ -20,7 +20,7 @@ export default function Landing({ view = "home" }: { view?: PageView }) {
     return () => query.removeEventListener("change", update);
   }, []);
   const item = examples[example];
-  return <div className={`landing compact-site view-${view} ${motion ? "motion-on" : "motion-off"}`}>
+  return <div className={`landing editorial compact-site view-${view} ${motion ? "motion-on" : "motion-off"}`}>
     <a className="skip" href="#main">Skip to content</a>
     <div className="ambient" aria-hidden="true"><i /><i /><i /></div>
     <nav className="nav glass" aria-label="Main navigation">

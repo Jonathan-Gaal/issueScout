@@ -12,6 +12,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(hasFirebaseConfig);
   const [menu, setMenu] = useState(false);
+  const [motion, setMotion] = useState(true);
   const [error, setError] = useState("");
   const path = usePathname(); const router = useRouter();
   const demo = path.startsWith("/demo");
@@ -25,7 +26,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     catch { setError("Could not sign out. Please try again."); }
   }
   const links = [[demo ? "/demo" : "/workspace", "New report"], [demo ? "/demo/history" : "/runs", "Report history"], [demo ? "/demo/guide" : "/guide", "How to use IssueScout"]];
-  return <SessionContext.Provider value={{ user, loading }}><div className="workspace-app"><a className="skip" href="#workspace-main">Skip to workspace</a>
+  return <SessionContext.Provider value={{ user, loading }}><div className={`workspace-app editorial ${motion ? "motion-on" : "motion-off"}`}><a className="skip" href="#workspace-main">Skip to workspace</a>
     <aside className="workspace-sidebar">
       <Link href="/" className="brand"><span className="brand-icon">i</span> IssueScout</Link>
       <button className="workspace-menu" aria-expanded={menu} aria-controls="workspace-navigation" onClick={() => setMenu(!menu)}>{menu ? "Close menu" : "Menu"}</button>
@@ -38,7 +39,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     <div className="workspace-body"><header className="workspace-topbar"><span>{demo ? "Try the experience" : "Issue research workspace"}</span><div>{user ? <><span className="session-email">{user.email}</span><button onClick={logout}>Sign out</button></> : <Link href="/signin">Sign in</Link>}</div></header>
     {error && <p className="workspace-alert" role="alert">{error}</p>}
     {demo && <div className="demo-banner"><strong>Sample mode</strong> Illustrative data only. No GitHub requests, no saved runs.</div>}
-    <main className="workspace-main" id="workspace-main">{children}</main>
-    <footer className="workspace-footer">IssueScout · Built by Ivaylo & Jonathan <Link href="/trust">Trust & safety</Link></footer></div>
+    <main key={path} className="workspace-main" id="workspace-main">{children}</main>
+    <footer className="workspace-footer"><span>IssueScout · Built by Ivaylo & Jonathan</span><button className="motion-toggle" aria-pressed={motion} onClick={() => setMotion(!motion)}>{motion ? "Pause" : "Enable"} animations</button><Link href="/trust">Trust & safety</Link></footer></div>
   </div></SessionContext.Provider>;
 }
