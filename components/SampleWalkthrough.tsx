@@ -8,14 +8,14 @@ import "./sample-walkthrough.css";
 const steps = ["Read", "Compare", "Classify", "Prioritize", "Recommend"];
 
 export default function SampleWalkthrough({ report }: { report: Report }) {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(4);
   const [playing, setPlaying] = useState(false);
   const root = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!playing || step === steps.length - 1) return;
     const timer = window.setInterval(() => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || root.current?.closest(".motion-off")) return;
+
       setStep(previous => previous < steps.length - 1 ? previous + 1 : previous);
     }, 3000);
     return () => window.clearInterval(timer);
@@ -23,15 +23,22 @@ export default function SampleWalkthrough({ report }: { report: Report }) {
 
   const partial = report.coverage.stopReason !== "completed";
   return <section ref={root} className="sample-walkthrough" aria-label="Illustrated sample walkthrough">
-    <header className="walk-masthead"><span><b>i</b> IssueScout <small>RESEARCH PASS</small></span><span>ILLUSTRATIVE WALKTHROUGH</span></header>
-    <div className="walk-controls"><nav aria-label="Walkthrough steps">{steps.map((label, index) => <button key={label} aria-pressed={step === index} className={step >= index ? "walk-reached" : ""} onClick={() => { setStep(index); setPlaying(false); }}><span>{index + 1}</span>{label}</button>)}</nav><button className="walk-play" onClick={() => { if (step === 4) setStep(0); setPlaying(previous => step === 4 ? true : !previous); }}>{step === 4 ? "Replay" : playing ? "Pause" : "Play walkthrough"}</button></div>
-    <div className="walk-body">
-      <section className="walk-original"><div className="walk-eyebrow"><span>ORIGINAL ISSUE</span><span>#128</span></div><h1>{report.issue.title}</h1><p className="walk-quote">“{sampleIssue.description}”</p><div className={`walk-times ${step >= 1 ? "is-revealed" : ""}`}><div><small>BOOKING PAGE</small><strong>3:00 PM</strong></div><span aria-label="does not match">≠</span><div><small>EMAIL</small><strong>2:00 PM</strong></div></div><p className="walk-caption">{step >= 1 ? "One appointment. Two reported times. Cause unconfirmed." : "Start with what the reporter actually said."}</p><details className="walk-source"><summary>Steps to reproduce</summary><ol>{sampleIssue.steps.map(item => <li key={item}>{item}</li>)}</ol></details></section>
-      <section className="walk-results" aria-label="Illustrated findings"><div className="walk-eyebrow"><span>SAMPLE ASSESSMENT</span><span>{partial ? "Partial report" : "Prepared example"}</span></div>
-        <div className={`walk-result ${step >= 2 ? "is-revealed" : ""}`}><span className="walk-result-label">CATEGORY & LABELS</span>{step >= 2 ? <><strong>Bug report</strong><div className="walk-tags">{report.suggestedLabels.map(label => <span key={label.name}>{label.name}</span>)}</div><p>{report.categoryReason}</p></> : <p className="walk-placeholder">Revealed at Classify</p>}</div>
-        <div className={`walk-result ${step >= 3 ? "is-revealed" : ""}`}><span className="walk-result-label">SUGGESTED PRIORITY</span>{step >= 3 ? <><strong className="walk-priority">Needs review</strong><p>{report.priorityEvidence}</p><small>Customer impact and cause are unverified.</small></> : <p className="walk-placeholder">Revealed at Prioritize</p>}</div>
-        <div className={`walk-result walk-next ${step >= 4 ? "is-revealed" : ""}`}><span className="walk-result-label">RECOMMENDED NEXT STEP</span>{step >= 4 ? <><strong>Check the timezones.</strong><p>{report.recommendedNextStep}</p></> : <p className="walk-placeholder">Revealed at Recommend</p>}</div>
+    <header className="walk-masthead"><span><b>i</b> IssueScout <small>RESEARCH PASS</small></span><span>{partial ? "PARTIAL SAMPLE REPORT" : "SAMPLE REPORT"}</span></header>
+    <div className="walk-issue-heading"><span className="walk-result-label">ISSUE #{report.issue.number}</span><h1>{report.issue.title}</h1></div>
+    {partial && <div className="walk-partial" role="status"><strong>Partial: related-issue comparison stopped early.</strong><p>The reported time mismatch is available to review. Further comparison was not completed, so other related reports may be missing.</p></div>}
+    <section className="walk-decision"><span className="walk-result-label">SUGGESTED NEXT STEP</span><h2>Check the timezones.</h2><p>{report.recommendedNextStep}</p><div><span className="walk-priority-badge">{report.priority.replaceAll("_", " ")}</span><small>Cause and customer impact remain unverified.</small></div></section>
+    <div className="walk-body answer-first">
+      <section className="walk-original"><div className="walk-eyebrow"><span>ORIGINAL ISSUE</span><span>#128</span></div><h2 className="walk-source-title">What the reporter saw</h2><p className="walk-quote">“{sampleIssue.description}”</p><div className="walk-times is-revealed"><div><small>BOOKING PAGE</small><strong>3:00 PM</strong></div><span aria-label="does not match">≠</span><div><small>EMAIL</small><strong>2:00 PM</strong></div></div><p className="walk-caption">One appointment. Two reported times. Cause unconfirmed.</p><details className="walk-source"><summary>Steps to reproduce</summary><ol>{sampleIssue.steps.map(item => <li key={item}>{item}</li>)}</ol></details></section>
+      <section className="walk-results" aria-label="Evidence and missing information"><div className="walk-eyebrow"><span>BEFORE YOU DECIDE</span></div>
+        <div className="walk-result"><span className="walk-result-label">WHAT WE KNOW</span><strong>Two reported times.</strong><p>The booking page shows 3:00 PM. The confirmation email shows 2:00 PM. These are the reporter’s observations, not independently verified.</p></div>
+        <div className="walk-result"><span className="walk-result-label">POSSIBLE EXPLANATION</span><strong>Timezone handling.</strong><p>This is a hypothesis. The issue does not establish whether the stored appointment or only its displayed time is wrong.</p></div>
+        <div className="walk-result walk-next"><span className="walk-result-label">WHAT’S MISSING</span><ul className="walk-missing">{report.missingInformation.map(item => <li key={item}>{item}</li>)}</ul></div>
       </section>
-    </div><footer className="walk-footer"><span>No live AI activity. No GitHub changes.</span><span>{step + 1} / 5 · {steps[step]}</span></footer>
+    </div><footer className="walk-footer"><span>No live AI activity. No GitHub changes.</span><span>You decide what happens next.</span></footer>
+    <details className="walk-explanation"><summary>See how this was assessed</summary>
+    <div className="walk-controls"><nav aria-label="Walkthrough steps">{steps.map((label, index) => <button key={label} aria-pressed={step === index} className={step >= index ? "walk-reached" : ""} onClick={() => { setStep(index); setPlaying(false); }}><span>{index + 1}</span>{label}</button>)}</nav><button className="walk-play" onClick={() => { if (step === 4) setStep(0); setPlaying(previous => step === 4 ? true : !previous); }}>{step === 4 ? "Replay explanation" : playing ? "Pause" : "Play walkthrough"}</button></div>
+
+      <div className="walk-explanation-content" aria-live="polite"><span className="walk-result-label">{step + 1} / 5 · {steps[step]}</span><p>{[sampleIssue.description, "Compare the reported booking time with the email: 3:00 PM and 2:00 PM differ.", report.categoryReason, report.priorityEvidence, report.recommendedNextStep][step]}</p>{step === 2 && <div className="walk-tags">{report.suggestedLabels.map(label => <span key={label.name}>{label.name}</span>)}</div>}</div>
+    </details>
   </section>;
 }
