@@ -12,5 +12,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Do not add arrows to buttons, links, or other calls to action in future builds. Use clear text labels.
 - Keep all cards translucent with frosted-glass surfaces and visible background depth.
-- Current visual direction: editorial ivory, ink/charcoal, restrained oxblood red. Avoid the previous all-beige/peach palette, violet, and green accents. Pair expressive serif display headlines with legible sans-serif controls.
+- Current visual direction: Apple-inspired white and soft silver, near-black system sans-serif typography, restrained blue accents, light translucent cards. Avoid previous beige/peach, oxblood, violet, and green decorative palettes or serif headlines.
 - Use purposeful motion with a pause control and reduced-motion support. Preserve clear navigation and translucent cards.
