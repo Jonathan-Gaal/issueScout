@@ -67,3 +67,7 @@ Replaced the accumulated public styles with the Studio design system. The short 
 ## Research pass report presentation
 
 The report begins with a boarding-pass-inspired glass card: dark brand/status strip, issue title and number stub, summary, then category, suggested priority and labels. Native disclosures expose the reason for each decision; priority uncertainty is flagged even while its reason is collapsed. Evidence, missing information, related issues, next step and limitations remain below in their established order, followed by separate system coverage. The barcode motif is decorative and hidden from assistive technology. No routing team, deadline or confidence score is invented. The information hierarchy takes inspiration from the ticket example in Will's TriagePilot reference.
+
+## Visual report narrative
+
+The report now explains five questions: what happened, why it matters, what supports it, what is missing, and what to do next. The piano-lesson sample supplies a typed UI comparison of 3 PM and 2 PM; this is not inferred for unrelated live reports. Real reports use their supplied summary, priority evidence, source observations, missing information and recommended next step. Model assessment and uncertainty are identified separately. All content remains escaped text.

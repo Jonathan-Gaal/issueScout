@@ -28,6 +28,7 @@ export const sampleReport: Report = {
 
 /** Original synthetic issue, shown beside the prepared report for frontend design. */
 export const sampleIssue = {
+  comparison: { before: "3:00 PM", after: "2:00 PM", beforeLabel: "Booking page", afterLabel: "Confirmation email", caption: "Two different times for the same piano lesson. The cause is not confirmed." },
   description: "I booked a piano lesson for 3:00 PM, but the confirmation email says 2:00 PM. The booking page still shows 3:00 PM.",
   steps: ["Choose a piano lesson.", "Select 3:00 PM and confirm the booking.", "Open the confirmation email."],
   expected: "The booking page and confirmation email both show 3:00 PM.",
