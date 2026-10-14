@@ -1,5 +1,8 @@
 # AppFlow — IssueScout
 
+> **Current frontend decisions (October 14, 2026):** See [PAGE-COMPOSITION.md](PAGE-COMPOSITION.md) for the page contract. Public Google signup replaces invitation-only access. Submission is synchronous, not a polling flow. The current build is read-only; future write-back screens are not implemented. The white/silver translucent design follows the user’s updated direction. These decisions supersede conflicting statements below.
+
+
 **Author:** Starscream (PRD Writer)
 **Date:** 2026-10-08
 **Status:** Draft

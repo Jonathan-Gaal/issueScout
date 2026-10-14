@@ -1,2 +1,2 @@
-import Guide from "../../guide/page";
-export default function Page() { return <Guide />; }
+import UsageGuide from "../../../../components/UsageGuide";
+export default function Page() { return <UsageGuide demo />; }

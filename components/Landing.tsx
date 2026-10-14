@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { clientConfig } from "../lib/client/config";
 import { useEffect, useState } from "react";
 
 const examples = [
@@ -28,6 +29,7 @@ export default function Landing({ view = "home" }: { view?: PageView }) {
       <button className="menu-toggle" aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? "Close menu" : "Menu"}</button>
       <div id="site-menu" className={`site-menu ${menuOpen ? "is-open" : ""}`}>
         {([["how", "/how-it-works", "How it works"], ["principles", "/trust", "Trust & safety"]] as const).map(([key, href, label]) => <Link key={key} href={href} aria-current={view === key ? "page" : undefined} onClick={() => setMenuOpen(false)}>{label}</Link>)}
+        {view !== "home" && <><Link href="/signup">Sign up</Link><Link href="/signin">Sign in</Link></>}
       </div>
     </nav>
     <main id="main">
@@ -38,7 +40,7 @@ export default function Landing({ view = "home" }: { view?: PageView }) {
           <p>Paste a GitHub issue link. Get a research report with supporting evidence, missing details, related issues, and a suggested next step.</p>
           <div className="hero-actions"><Link href="/signup" className="button primary">Sign up</Link><Link href="/signin" className="text-link">Sign in</Link><Link href="/demo" className="text-link">Try demo</Link></div>
           <div className="hero-note">Open to everyone. No account needed to try the demo.</div>
-          <p className="home-scope">Read-only. Nothing changes on GitHub.</p>
+          <p className="home-scope">Currently supports {clientConfig.approvedRepo}. Read-only: nothing changes on GitHub.</p>
         </div>
       </section>}
       {view === "how" && <section id="how" className="how section"><div className="section-heading"><div><span className="eyebrow">01 / FROM QUESTION TO CLARITY</span><h2>One link.<br /><em>A clearer next step.</em></h2></div><p>A focused workflow for the person<br />who has to decide what happens next.</p></div><div className="steps">{[
@@ -50,6 +52,7 @@ export default function Landing({ view = "home" }: { view?: PageView }) {
       <div className="explorer glass"><article className="original"><span className="tiny">{item.tag}</span><h3 key={item.title}>{item.title}</h3><blockquote>{item.description}</blockquote><div className="original-bottom"><span>THE STARTING POINT</span><p>A short report can leave<br />a lot unanswered.</p></div></article><div className="findings"><div className="findings-top"><span className="brand">IssueScout</span><span className="sample-badge">ILLUSTRATIVE FINDINGS</span></div><div className="pills"><span>{item.category}</span><span className="peach">{item.priority}</span></div><div className="report-tabs" aria-label="Choose report section">{["Overview", "Missing details", "Related issues"].map((label,index)=><button key={label} aria-pressed={section===index} onClick={()=>setSection(index)}>{label}</button>)}</div><div className="finding-content" aria-live="polite" key={`${example}-${section}`}><h4>{["What the report tells us", "What to ask the reporter", "What to compare"][section]}</h4><p>{[item.summary,item.missing,item.related][section]}</p></div><div className="next-step"><span className="tiny">RECOMMENDED NEXT STEP</span><p>{item.next}</p></div><small className="sample-disclaimer">In a live report, evidence links and coverage show what was actually checked.</small></div></div></section>}
       {view === "principles" && <section id="principles" className="section principles"><div><span className="eyebrow">03 / CONFIDENCE HAS BOUNDARIES</span><h2>Useful judgment.<br /><em>Visible limits.</em></h2><p>Designed to help you think, with a clear distinction between what was found and what still needs checking.</p></div><div className="principle-list">{[["01","Show the evidence.","Findings should point back to retrieved GitHub sources, so you can check the reasoning."],["02","Say what’s uncertain.","Partial research and missing details belong in the report. A possible duplicate is not a confirmed match."],["03","Keep you in control.","The first version is read-only. It suggests next steps; you decide what to change."]].map(([n,title,copy])=><article key={n}><span>{n}</span><div><h3>{title}</h3><p>{copy}</p></div></article>)}</div></section>}
 
+      {view !== "home" && <div className="hero-actions public-page-actions"><Link href="/demo" className="button primary">Try demo</Link><Link href="/signup" className="text-link">Create an account</Link></div>}
     </main>{view !== "home" && <footer><Link href="/" className="brand">IssueScout</Link><span>Built by Ivaylo & Jonathan.</span><button className="motion-toggle" aria-pressed={motion} onClick={()=>setMotion(!motion)}>{motion ? "Pause" : "Enable"} animations</button></footer>}
   </div>;
 }

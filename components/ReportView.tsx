@@ -34,6 +34,7 @@ export default function ReportView({ report, sample = false }: { report: Report;
       <p className="rv-kicker">ISSUE #{report.issue.number} · {report.issue.state}</p>
       <h1>{report.issue.title}</h1>
       <div className="rv-source">{sample ? <span>Fictional issue · no original GitHub issue</span> : <GitHubLink url={report.issue.url}>View original issue</GitHubLink>}{!Number.isNaN(readAt.getTime()) && <span>Read {readAt.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} UTC</span>}</div>
+      <p className="report-reading-guide">Start with the summary. Check the evidence and missing information, then use the recommended next step to decide what to do on GitHub.</p>
     </header>
     {partial && <div className="rv-notice" role="status"><strong>{stopLabels[report.coverage.stopReason]}</strong><p>Research stopped before completion. Use these findings as a starting point and review the research coverage and limitations below.</p></div>}
     <Section title="Summary"><p>{report.summary || "No summary was available for this run."}</p></Section>
