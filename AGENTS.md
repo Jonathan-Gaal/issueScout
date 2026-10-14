@@ -12,5 +12,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Do not add arrows to buttons, links, or other calls to action in future builds. Use clear text labels.
 - Keep all cards translucent with frosted-glass surfaces and visible background depth.
-- Current visual direction: Apple-inspired white and soft silver, near-black system sans-serif typography, restrained blue accents, light translucent cards. Avoid previous beige/peach, oxblood, violet, and green decorative palettes or serif headlines.
+- Current visual direction: Polished SaaS structure with bold graphite public pages, silver reading surfaces, large sans-serif typography, restrained blue accents, and translucent cards. Avoid previous beige/peach, oxblood, violet, and green decorative palettes or serif headlines.
 - Use purposeful motion with a pause control and reduced-motion support. Preserve clear navigation and translucent cards.

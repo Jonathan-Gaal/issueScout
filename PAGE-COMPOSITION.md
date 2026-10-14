@@ -19,14 +19,14 @@ Public pages help visitors understand and enter the product. Authentication page
 - Authentication: compact brand/home header and a demo exit; no workspace sidebar before entry.
 - Workspace navigation: New report, Report history, How to use IssueScout. Show current location, account identity, and Sign out.
 - Demo navigation: equivalent sample routes, a persistent Sample mode label, and an explicit sign-up/sign-in transition to live work. Guide and history navigation stay inside demo until that explicit transition.
-- Use the user's white/silver Apple-inspired treatment, translucent cards, restrained blue, no arrow icons in calls to action, readable contrast, reduced-motion support, and a pause animation control where animation is present.
+- Use the user's polished SaaS and bold visual direction: graphite public pages and navigation, silver reading surfaces, translucent cards, restrained blue, no arrow icons in calls to action, readable contrast, reduced-motion support, and a pause animation control where animation is present.
 - Render GitHub and model content as escaped text. Status always includes words, not color alone.
 
 ## Page-by-page contract
 
 | Page | User's question | Required content | Main action | Secondary action and states |
 |---|---|---|---|---|
-| `/` Home | Is this for me, and where do I start? | Audience: GitHub project maintainers. One-sentence value: one issue link becomes an evidence-backed research report. Keep one short explanatory sentence. Repository scope remains on the submission page. | Sign up | Log in; See sample. Keep this short, without repeating the full report or adding a long feature grid. |
+| `/` Home | Is this for me, and where do I start? | Audience: GitHub project maintainers. One-sentence value: one issue link becomes an evidence-backed research report. Keep one short explanatory sentence. Repository scope remains on the submission page. | Get started (signup) | Log in; See sample. Keep this short, without repeating the full report or adding a long feature grid. |
 | `/how-it-works` | What happens after I submit a link? | Three concrete steps: paste one supported issue link; IssueScout reads and compares evidence; review the report and decide on GitHub. Clarify bounded research rather than a search of all GitHub. | Try demo | Sign up. Use the same names as the actual workspace controls. |
 | `/trust` | What can the agent change, and what can I trust? | Read-only access, source-backed findings, visible uncertainty and research limits. State that history is account-specific. Do not invent a retention period or guarantee injection detection. | Try demo | Sign up. Explain that related issues are suggestions, not proven duplicates. |
 | `/signup` | How do I get an account? | Create your account; Google signup; no invitation required; report history belongs to the account. | Sign up with Google | Existing account: Sign in. Try demo. Show busy, cancelled/failed sign-in, and unavailable-configuration states honestly. |
@@ -59,3 +59,7 @@ A partial result must explain what stopped the run. Empty related issues means n
 6. **Repair stale source documents.** APPFLOW.md, DESIGN-BRIEF.md, and USER-STORIES.md still contain invitation-only and polling assumptions. This contract supersedes those aspects; update them before handing the work to another builder.
 
 No pricing, team administration, billing, integrations marketplace, bulk triage, auto-labeling, or repository setup screens are required for the current build. Adding them would suggest capabilities the backend does not provide.
+
+## Visual rebuild — October 14
+
+Replaced the accumulated public styles with the Studio design system. The short homepage pairs a clear signup/sample choice with one explicitly fictional report preview. Public informational pages, authentication, the workspace, history and reports share typography, glass surfaces and color tokens. Motion is limited to entrances and a floating preview, with pause and reduced-motion support. Authentication and API behavior are unchanged.
