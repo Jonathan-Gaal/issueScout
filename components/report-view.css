@@ -222,3 +222,28 @@
 @media(prefers-reduced-motion:reduce) {
  .report-research-details .scope-metric.motion-seen, .report-research-details .scope-metric.motion-seen>* { animation: none!important; }
 }
+
+/* Keep report prose and section titles on a consistent reading scale. */
+.editorial .sample-intro > p,
+.editorial #workspace-main .report-view #report-next-step p.next-step-intro,
+.editorial .workspace-main .rv-notice > p,
+.editorial #workspace-main .rv-notice > p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.editorial .report-view .clear-section-title,
+.editorial #report-next-step h2,
+.editorial #workspace-main .rv-notice > h2 {
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+/* Assessment and next-step prose have equal emphasis; headings carry hierarchy. */
+.editorial #workspace-main .report-view .animated-summary p,
+.editorial #workspace-main .report-view #report-next-step p.next-step-intro {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: normal;
+  color: #526578;
+}
