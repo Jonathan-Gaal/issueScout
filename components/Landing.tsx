@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { clientConfig } from "../lib/client/config";
 
 const workflow = [
-  ["01", "Bring one issue.", "Paste a GitHub issue link from the supported repository. Start with the problem you want to understand."],
+  ["01", "Bring one issue.", "Paste a GitHub issue link from any public repository. Start with the problem you want to understand."],
   ["02", "Find the context.", "IssueScout reads the discussion and compares a limited set of related issues in the same project."],
   ["03", "Make your call.", "Review the evidence, missing details, and suggested next step. You decide what happens on GitHub."],
 ];
@@ -31,7 +30,7 @@ export default function Landing({ view = "home" }: { view?: "home" | "how" | "pr
           <h1>Less noise.<br /><span>More next steps.</span></h1>
           <p>Paste one issue link. Review the findings, supporting evidence, and a suggested next step.</p>
           <div className="studio-actions"><Link href="/signup" className="studio-button">Create an account</Link><Link href="/demo/report" className="studio-button studio-secondary">See sample</Link></div>
-          <small>Currently supports {clientConfig.approvedRepo}. Create an account with Google or see the sample without one.</small>
+          <small>Works with any public GitHub repository. Create an account with Google or see the sample without one.</small>
         </div>
         <div className="studio-stage" aria-label="Illustrative research report preview">
           <div className="studio-orbit" aria-hidden="true" /><div className="studio-orbit orbit-two" aria-hidden="true" />
@@ -53,7 +52,7 @@ export default function Landing({ view = "home" }: { view?: "home" | "how" | "pr
         ].map(([href,icon,title,copy])=><Link key={href} href={href} className="discovery-tile"><span className="discovery-cover" aria-hidden="true">{icon}</span><span><strong>{title}</strong><small>{copy}</small></span></Link>)}</div></section></> : <section className="studio-info">
         <span className="studio-eyebrow">{view === "how" ? "THE WORKFLOW" : "BUILT FOR YOUR JUDGMENT"}</span>
         <h1>{view === "how" ? <>From issue.<br /><span>To understanding.</span></> : <>Useful insight.<br /><span>Visible boundaries.</span></>}</h1>
-        <p className="public-scope">Current research scope: <strong>{clientConfig.approvedRepo}</strong>. IssueScout compares a limited set of issues within this repository.</p><div className="studio-info-grid">{(view === "how" ? workflow : principles).map(([number, title, copy]) => <article key={number}><span className="preview-label">{number}</span><h2>{title}</h2><p>{copy}</p></article>)}</div>
+        <p className="public-scope">Current research scope: <strong>any public GitHub repository</strong>. IssueScout compares a limited set of issues within the issue's own repository.</p><div className="studio-info-grid">{(view === "how" ? workflow : principles).map(([number, title, copy]) => <article key={number}><span className="preview-label">{number}</span><h2>{title}</h2><p>{copy}</p></article>)}</div>
         {view === "principles" && <section className="trust-data"><h2>Your data and this preview</h2><p>Issue text and selected discussion content are sent to the configured AI provider for analysis. Reports are stored for your account. The provider used by the deployed service, retention period, and deletion process have not yet been published.</p><p>Until those details are confirmed, use public GitHub issues only and do not submit secrets or private information. Read-only means no changes to GitHub; it does not mean no data is stored.</p><p>Questions about stored reports: contact the project maintainers, Ivaylo or Jonathan.</p></section>}
         <div className="studio-actions"><Link href="/demo/report" className="studio-button">See sample</Link><Link href="/signup" className="studio-button studio-secondary">Create an account</Link></div>
       </section>}

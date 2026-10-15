@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, reload, signOut } from "@firebase/auth";
 import { clientAuth } from "../lib/client/firebase";
-import { clientConfig, hasFirebaseConfig } from "../lib/client/config";
+import { hasFirebaseConfig } from "../lib/client/config";
 import { api, ApiFailure } from "../lib/client/api";
 import { useSession } from "./WorkspaceShell";
 export default function SignIn({ mode = "signin" }: { mode?: "signin" | "signup" }) {
@@ -83,7 +83,7 @@ export default function SignIn({ mode = "signin" }: { mode?: "signin" | "signup"
   return <div className="signin-layout auth-gold-layout">
     <div className="auth-intro"><span className="workspace-kicker">ISSUESCOUT · YOUR RESEARCH WORKSPACE</span><h1>{signup ? <>Less guesswork.<br /><span>A clearer next step.</span></> : <>Your research.<br /><span>Ready to revisit.</span></>}</h1><p>Turn a GitHub issue into findings, supporting evidence, and a next step you can review.</p>
       <div className="auth-journey" aria-label="After signing in"><div><span>01</span><p>Paste an issue link</p></div><div><span>02</span><p>Review the report</p></div><div><span>03</span><p>Return to your history</p></div></div>
-      <p className="auth-scope">Currently supports <strong>{clientConfig.approvedRepo}</strong>. Read-only: no comments, labels, or closures are applied.</p>
+      <p className="auth-scope">Works with <strong>any public GitHub repository</strong>. Read-only: no comments, labels, or closures are applied.</p>
     </div>
     <section className="workspace-card auth-panel" aria-labelledby="auth-heading"><span className="workspace-badge">{user ? "Account connected" : signup ? "Invite-only access" : "WELCOME BACK"}</span><h2 id="auth-heading">{user ? "Continue to IssueScout" : signup ? "Create your account" : "Sign in to IssueScout"}</h2><p>{user ? "Open your workspace to start a report or review your history." : signup ? "Create an account with your email, or continue with Google." : "Sign in with your email and password, or use Google."}</p>
       {!hasFirebaseConfig && <div className="workspace-alert"><strong>Sign-in is temporarily unavailable.</strong><p>You can still explore the sample below.</p></div>}
