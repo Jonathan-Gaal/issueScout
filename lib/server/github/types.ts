@@ -53,9 +53,10 @@ export interface SearchError {
 /**
  * The harness's only path to GitHub. All four operations are read-only;
  * no write operation exists on this interface in any phase (TRD §3.3).
- * Implementations hardcode owner/repo from config.approvedRepo — callers
- * never pass owner/repo, which is the architectural half of "the model
- * never supplies owner/repo" (spec 007 enforces the other half at the
+ * Implementations bind owner/repo once at construction, from the
+ * validated input URL — callers never pass owner/repo per call, which
+ * is the architectural half of "the model never supplies owner/repo"
+ * (spec 007 enforces the other half at the
  * tool-schema level).
  */
 export interface GitHubClient {

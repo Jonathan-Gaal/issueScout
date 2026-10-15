@@ -114,7 +114,7 @@ async function runHarnessInner(
     return buildErrorResult("run_rate_limited");
   }
 
-  const parsedUrl = parseIssueUrl(params.issueUrl, config.approvedRepo);
+  const parsedUrl = parseIssueUrl(params.issueUrl);
   if (!parsedUrl.ok) {
     await persist({ status: "failed", errorCode: parsedUrl.code });
     return buildErrorResult(parsedUrl.code);

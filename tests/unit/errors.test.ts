@@ -9,7 +9,6 @@ import type { ErrorCode } from "../../lib/contract";
 // this test asserts behavior (status + message shape) per code.
 const ALL_ERROR_CODES: ErrorCode[] = [
   "invalid_url",
-  "repo_not_allowed",
   "is_pull_request",
   "not_found",
   "issue_too_long",

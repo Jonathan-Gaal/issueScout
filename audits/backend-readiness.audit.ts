@@ -33,34 +33,34 @@ function respond(status: number, body: unknown) {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe("Backend readiness requirements", () => {
-  it("accepts the approved HTTPS issue URL (control)", () => {
-    expect(parseIssueUrl(url, "calcom/cal.diy").ok).toBe(true);
+  it("accepts a well-formed HTTPS issue URL (control)", () => {
+    expect(parseIssueUrl(url).ok).toBe(true);
   });
   it("rejects HTTP URLs under the agreed HTTPS-only policy", () => {
-    expect(parseIssueUrl(url.replace("https:", "http:"), "calcom/cal.diy").ok).toBe(false);
+    expect(parseIssueUrl(url.replace("https:", "http:")).ok).toBe(false);
   });
   it("rejects issue numbers that cannot be represented exactly", () => {
-    expect(parseIssueUrl(url.replace("42", "9007199254740993"), "calcom/cal.diy").ok).toBe(false);
+    expect(parseIssueUrl(url.replace("42", "9007199254740993")).ok).toBe(false);
   });
   it("does not treat an issue-endpoint pull request as an issue", async () => {
     respond(200, { number: 42, title: "PR", body: "changes", state: "open", html_url: url, pull_request: {} });
     let acceptedIssue = false;
-    try { acceptedIssue = !("notFound" in await new RestGitHubClient().getIssue(42)); } catch { /* rejection is valid */ }
+    try { acceptedIssue = !("notFound" in await new RestGitHubClient("calcom/cal.diy").getIssue(42)); } catch { /* rejection is valid */ }
     expect(acceptedIssue).toBe(false);
   });
   it("does not convert a comments outage into a successful empty list", async () => {
     respond(503, { message: "unavailable" });
     let value: unknown;
-    try { value = await new RestGitHubClient().getComments(42, 20); } catch { value = "explicit failure"; }
+    try { value = await new RestGitHubClient("calcom/cal.diy").getComments(42, 20); } catch { value = "explicit failure"; }
     expect(value).not.toEqual({ comments: [], truncated: false });
   });
   it("does not convert malformed search JSON into no matches", async () => {
     respond(200, { unexpected: true });
-    expect(await new RestGitHubClient().searchIssues("crash", 10, 42)).not.toEqual([]);
+    expect(await new RestGitHubClient("calcom/cal.diy").searchIssues("crash", 10, 42)).not.toEqual([]);
   });
-  it("rejects a candidate from outside the approved repository", async () => {
+  it("rejects a candidate from outside the bound repository", async () => {
     respond(200, { items: [{ number: 7, title: "outside", state: "open", html_url: "https://github.com/other/project/issues/7" }] });
-    const result = await new RestGitHubClient().searchIssues("crash repo:other/project", 10, 42);
+    const result = await new RestGitHubClient("calcom/cal.diy").searchIssues("crash repo:other/project", 10, 42);
     expect(Array.isArray(result) ? result : []).toEqual([]);
   });
   it("enforces the read budget for failed attempts too", async () => {

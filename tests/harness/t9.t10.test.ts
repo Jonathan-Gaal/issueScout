@@ -6,7 +6,7 @@ import { runHarness } from "../../lib/server/harness/runHarness";
 import type { GitHubClient } from "../../lib/server/github/types";
 import type { ModelProvider } from "../../lib/server/model/types";
 
-const APPROVED_ISSUE_URL = "https://github.com/calcom/cal.diy/issues/42";
+const SAMPLE_ISSUE_URL = "https://github.com/calcom/cal.diy/issues/42";
 const alwaysAllowedRateCheck = async () => 0;
 
 function createFakeGitHubClient(overrides: Partial<GitHubClient> = {}): GitHubClient {
@@ -17,7 +17,7 @@ function createFakeGitHubClient(overrides: Partial<GitHubClient> = {}): GitHubCl
       body: "Test body.",
       state: "open",
       labels: [],
-      url: APPROVED_ISSUE_URL,
+      url: SAMPLE_ISSUE_URL,
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-01T00:00:00Z",
       retrievedAt: "2026-01-01T00:00:00Z",
@@ -70,7 +70,7 @@ describe("T9 — fabricated label and un-retrieved related-issue number both str
     };
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -84,7 +84,7 @@ describe("T9 — fabricated label and un-retrieved related-issue number both str
   });
 });
 
-describe("T10 — PR URL, wrong-repo URL, oversized issue body all short-circuit before any model call", () => {
+describe("T10 — PR URL, oversized issue body all short-circuit before any model call", () => {
   it("a pull request URL returns is_pull_request without calling the model", async () => {
     const githubClient = createFakeGitHubClient();
     const completeMock = vi.fn();
@@ -100,21 +100,6 @@ describe("T10 — PR URL, wrong-repo URL, oversized issue body all short-circuit
     expect(completeMock).not.toHaveBeenCalled();
   });
 
-  it("a URL in a different repository returns repo_not_allowed without calling the model", async () => {
-    const githubClient = createFakeGitHubClient();
-    const completeMock = vi.fn();
-    const modelProvider: ModelProvider = { complete: completeMock };
-
-    const result = await runHarness(
-      { issueUrl: "https://github.com/octocat/hello-world/issues/1", userId: "user-1" },
-      { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
-    );
-
-    expect(result.status).toBe("failed");
-    expect(result.errorCode).toBe("repo_not_allowed");
-    expect(completeMock).not.toHaveBeenCalled();
-  });
-
   it("an issue longer than ISSUE_MAX_CHARS returns issue_too_long without calling the model", async () => {
     const oversizedBody = "x".repeat(20001);
     const githubClient = createFakeGitHubClient({
@@ -124,7 +109,7 @@ describe("T10 — PR URL, wrong-repo URL, oversized issue body all short-circuit
         body: oversizedBody,
         state: "open",
         labels: [],
-        url: APPROVED_ISSUE_URL,
+        url: SAMPLE_ISSUE_URL,
         createdAt: "2026-01-01T00:00:00Z",
         updatedAt: "2026-01-01T00:00:00Z",
         retrievedAt: "2026-01-01T00:00:00Z",
@@ -134,7 +119,7 @@ describe("T10 — PR URL, wrong-repo URL, oversized issue body all short-circuit
     const modelProvider: ModelProvider = { complete: completeMock };
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 

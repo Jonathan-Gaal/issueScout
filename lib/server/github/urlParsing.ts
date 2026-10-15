@@ -12,18 +12,18 @@ export interface ParsedIssueUrl {
 
 export type UrlParseResult =
   | { ok: true; value: ParsedIssueUrl }
-  | { ok: false; code: Extract<ErrorCode, "invalid_url" | "repo_not_allowed" | "is_pull_request"> };
+  | { ok: false; code: Extract<ErrorCode, "invalid_url" | "is_pull_request"> };
 
 const GITHUB_ISSUE_URL_PATTERN =
   /^https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/(issues|pull)\/(\d+)\/?(?:[?#].*)?$/i;
 
 /**
- * Parses and classifies a GitHub issue URL against the approved repo.
- * Returns a typed result rather than throwing — every branch is a
- * tested, expected outcome (valid, wrong-repo, is-a-PR, malformed),
+ * Parses and classifies a GitHub issue URL. Validates structure only
+ * (any owner/repo) — returns a typed result rather than throwing,
+ * every branch a tested, expected outcome (valid, is-a-PR, malformed),
  * never an exception for the caller to catch.
  */
-export function parseIssueUrl(rawUrl: string, approvedRepo: string): UrlParseResult {
+export function parseIssueUrl(rawUrl: string): UrlParseResult {
   if (typeof rawUrl !== "string" || rawUrl.trim().length === 0) {
     return { ok: false, code: "invalid_url" };
   }
@@ -37,11 +37,6 @@ export function parseIssueUrl(rawUrl: string, approvedRepo: string): UrlParseRes
   const number = Number(numberText);
   if (!Number.isSafeInteger(number) || number <= 0) {
     return { ok: false, code: "invalid_url" };
-  }
-
-  const candidateRepo = `${owner}/${repo}`;
-  if (candidateRepo.toLowerCase() !== approvedRepo.toLowerCase()) {
-    return { ok: false, code: "repo_not_allowed" };
   }
 
   if (urlKind.toLowerCase() === "pull") {

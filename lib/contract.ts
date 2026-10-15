@@ -90,7 +90,6 @@ export interface Report extends ModelReport {
  */
 export type ErrorCode =
   | "invalid_url"
-  | "repo_not_allowed"
   | "is_pull_request"
   | "not_found"
   | "issue_too_long"

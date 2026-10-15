@@ -13,8 +13,6 @@ export type ModelProviderName = "anthropic" | "groq";
 export type AuthProviderName = "firebase";
 
 export interface AppConfig {
-  approvedRepo: string;
-
   // D2: model provider choice.
   modelProvider: ModelProviderName;
   anthropicApiKey: string | undefined;
@@ -78,8 +76,6 @@ function positiveLimit(name: string, fallback: number, maximum: number): number 
   return value;
 }
 export const config: AppConfig = {
-  approvedRepo: process.env.APPROVED_REPO ?? "calcom/cal.diy",
-
   // D2 — CONFIRM BEFORE SHIPPING: Anthropic vs Groq final choice.
   modelProvider: (process.env.MODEL_PROVIDER as ModelProviderName) ?? "anthropic",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,

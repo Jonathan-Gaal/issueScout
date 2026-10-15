@@ -29,7 +29,7 @@ describe("RestGitHubClient", () => {
       }));
       fetchMock.mockResolvedValueOnce(jsonResponse(200, twentyOneComments));
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.getComments(1, 20);
 
       expect(result.truncated).toBe(true);
@@ -44,7 +44,7 @@ describe("RestGitHubClient", () => {
       }));
       fetchMock.mockResolvedValueOnce(jsonResponse(200, fiveComments));
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.getComments(1, 20);
 
       expect(result.truncated).toBe(false);
@@ -64,7 +64,7 @@ describe("RestGitHubClient", () => {
         })
       );
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.searchIssues("crash", 10, 1);
 
       expect(result).toEqual([
@@ -75,7 +75,7 @@ describe("RestGitHubClient", () => {
     it("returns { rateLimited: true } on a 403 response, not an empty success", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse(403, { message: "rate limit exceeded" }));
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.searchIssues("crash", 10, 1);
 
       expect(result).toEqual({ rateLimited: true });
@@ -84,7 +84,7 @@ describe("RestGitHubClient", () => {
     it("returns { rateLimited: true } on a 429 response", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse(429, { message: "too many requests" }));
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.searchIssues("crash", 10, 1);
 
       expect(result).toEqual({ rateLimited: true });
@@ -95,7 +95,7 @@ describe("RestGitHubClient", () => {
         new Response("not json", { status: 200, headers: { "Content-Type": "text/plain" } })
       );
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.searchIssues("crash", 10, 1);
 
       expect(result).toEqual({ error: true });
@@ -106,10 +106,39 @@ describe("RestGitHubClient", () => {
     it("returns { notFound: true } on a 404, never throws", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse(404, { message: "Not Found" }));
 
-      const client = new RestGitHubClient();
+      const client = new RestGitHubClient("calcom/cal.diy");
       const result = await client.getIssue(999);
 
       expect(result).toEqual({ notFound: true });
+    });
+
+    it("works against a second, different repo bound at construction", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(200, {
+          number: 1, title: "a react issue", body: "x", state: "open",
+          html_url: "https://github.com/facebook/react/issues/1",
+          created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", labels: [],
+        })
+      );
+
+      const client = new RestGitHubClient("facebook/react");
+      await client.getIssue(1);
+
+      const requestedUrl = String(fetchMock.mock.calls[0][0]);
+      expect(requestedUrl).toContain("/repos/facebook/react/issues/1");
+    });
+
+    it("rejects a response whose html_url belongs to a different repo than the one bound at construction", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(200, {
+          number: 1, title: "mismatched repo", body: "x", state: "open",
+          html_url: "https://github.com/other/project/issues/1",
+          created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", labels: [],
+        })
+      );
+
+      const client = new RestGitHubClient("calcom/cal.diy");
+      await expect(client.getIssue(1)).rejects.toThrow();
     });
   });
 });

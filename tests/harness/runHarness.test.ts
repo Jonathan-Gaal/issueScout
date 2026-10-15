@@ -3,7 +3,7 @@ import { runHarness } from "../../lib/server/harness/runHarness";
 import type { GitHubClient } from "../../lib/server/github/types";
 import type { ModelProvider, ModelResponse } from "../../lib/server/model/types";
 
-const APPROVED_ISSUE_URL = "https://github.com/calcom/cal.diy/issues/42";
+const SAMPLE_ISSUE_URL = "https://github.com/calcom/cal.diy/issues/42";
 
 const VALID_MODEL_REPORT_JSON = {
   summary: "A clean bug report.",
@@ -30,7 +30,7 @@ function createFakeGitHubClient(overrides: Partial<GitHubClient> = {}): GitHubCl
       body: "Steps to reproduce...",
       state: "open",
       labels: [],
-      url: APPROVED_ISSUE_URL,
+      url: SAMPLE_ISSUE_URL,
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-01T00:00:00Z",
       retrievedAt: "2026-01-01T00:00:00Z",
@@ -58,7 +58,7 @@ const alwaysAllowedRateCheck = async () => 0;
 describe("runHarness", () => {
   it("accepts one JSON fence while preserving strict schema validation", async () => {
     const provider = createFakeModelProvider([{ content: [{ type: "text", text: "```json\n" + JSON.stringify(VALID_MODEL_REPORT_JSON) + "\n```" }], stopReason: "end_turn" }]);
-    const result = await runHarness({ issueUrl: APPROVED_ISSUE_URL, userId: "test" }, { githubClient: createFakeGitHubClient(), modelProvider: provider, countRunsInLastHour: alwaysAllowedRateCheck });
+    const result = await runHarness({ issueUrl: SAMPLE_ISSUE_URL, userId: "test" }, { githubClient: createFakeGitHubClient(), modelProvider: provider, countRunsInLastHour: alwaysAllowedRateCheck });
     expect(result.status).toBe("completed");
   });
 
@@ -68,7 +68,7 @@ describe("runHarness", () => {
     "```json\n" + JSON.stringify({ ...VALID_MODEL_REPORT_JSON, coverage: {} }) + "\n```",
   ])("rejects prose and harness-owned fields even in fenced output", async (text) => {
     const provider = createFakeModelProvider([{ content: [{ type: "text", text }], stopReason: "end_turn" }]);
-    const result = await runHarness({ issueUrl: APPROVED_ISSUE_URL, userId: "test" }, { githubClient: createFakeGitHubClient(), modelProvider: provider, countRunsInLastHour: alwaysAllowedRateCheck });
+    const result = await runHarness({ issueUrl: SAMPLE_ISSUE_URL, userId: "test" }, { githubClient: createFakeGitHubClient(), modelProvider: provider, countRunsInLastHour: alwaysAllowedRateCheck });
     expect(result.errorCode).toBe("model_output_invalid");
   });
 
@@ -79,7 +79,7 @@ describe("runHarness", () => {
     ]);
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -97,7 +97,7 @@ describe("runHarness", () => {
     const modelProvider = createFakeModelProvider([infiniteSearchResponse]);
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -117,7 +117,7 @@ describe("runHarness", () => {
     ]);
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -132,7 +132,7 @@ describe("runHarness", () => {
     ]);
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -153,7 +153,7 @@ describe("runHarness", () => {
     ]);
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -175,18 +175,18 @@ describe("runHarness", () => {
     expect(completeMock).not.toHaveBeenCalled();
   });
 
-  it("never constructs a model message array when the input check fails before any model call (repo_not_allowed)", async () => {
+  it("never constructs a model message array when the input check fails before any model call (is_pull_request)", async () => {
     const githubClient = createFakeGitHubClient();
     const completeMock = vi.fn();
     const modelProvider: ModelProvider = { complete: completeMock };
 
     const result = await runHarness(
-      { issueUrl: "https://github.com/octocat/hello-world/issues/1", userId: "user-1" },
+      { issueUrl: "https://github.com/calcom/cal.diy/pull/1", userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
     expect(result.status).toBe("failed");
-    expect(result.errorCode).toBe("repo_not_allowed");
+    expect(result.errorCode).toBe("is_pull_request");
     expect(completeMock).not.toHaveBeenCalled();
   });
 
@@ -197,7 +197,7 @@ describe("runHarness", () => {
     const modelProvider: ModelProvider = { complete: completeMock };
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: async () => 10 }
     );
 
@@ -215,7 +215,7 @@ describe("runHarness", () => {
     const modelProvider: ModelProvider = { complete: completeMock };
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -233,7 +233,7 @@ describe("runHarness", () => {
         body: hugeBody,
         state: "open",
         labels: [],
-        url: APPROVED_ISSUE_URL,
+        url: SAMPLE_ISSUE_URL,
         createdAt: "2026-01-01T00:00:00Z",
         updatedAt: "2026-01-01T00:00:00Z",
         retrievedAt: "2026-01-01T00:00:00Z",
@@ -243,7 +243,7 @@ describe("runHarness", () => {
     const modelProvider: ModelProvider = { complete: completeMock };
 
     const result = await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
     );
 
@@ -262,7 +262,7 @@ describe("runHarness", () => {
     });
 
     await runHarness(
-      { issueUrl: APPROVED_ISSUE_URL, userId: "user-1" },
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
       { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck, persistRun }
     );
 
