@@ -6,6 +6,5 @@ export const clientConfig = {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "",
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
   },
-  approvedRepo: process.env.NEXT_PUBLIC_APPROVED_REPO ?? "calcom/cal.diy",
 };
 export const hasFirebaseConfig = Object.values(clientConfig.firebase).every(Boolean);
