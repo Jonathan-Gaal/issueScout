@@ -1,94 +1,183 @@
 # IssueScout
 
-IssueScout prepares a first-pass triage report for one GitHub issue so a maintainer can review it: a signed-in, allowlisted user submits an issue URL, the backend fetches the issue and its comments, an LLM (run inside a bounded tool-calling harness) searches the same repository for related issues, and the app returns a report — summary, category, provisional priority, suggested labels, evidence, missing information, related issues, a recommended next step, and limitations. This build is **Phase 1 only**: read-only against GitHub, no writes of any kind. `proposedActions` is always `[]`, enforced by the harness regardless of what the model produces.
+IssueScout is a read-only AI research assistant for **software maintainers and engineering teams in the software industry**. A signed-in, allowlisted user submits a GitHub issue URL from any public repository, and the app returns a report explaining the reported problem, suggested labels and priority, potentially related issues, missing information, and a recommended next step. This build is **Phase 1 only**: read-only against GitHub, no writes of any kind. `proposedActions` is always `[]`, enforced by the harness regardless of what the model produces.
 
-## Running locally
+It helps the person responsible for an issue tracker decide what to investigate next. The report distinguishes reporter and commenter claims from what IssueScout actually checked. It does not fix bugs or change anything on GitHub.
+
+## What the agent does
+
+1. A user signs in with a verified Firebase account and submits one issue URL.
+2. The backend reads the issue, comments, and repository labels through the GitHub REST API.
+3. A bounded agent loop can search the same repository and read candidate issues.
+4. The harness validates the model's report, limits tool use, and supplies research-coverage information.
+5. The website presents findings, evidence, uncertainty, and a next step. Its API persists runs and reports for owner-scoped history.
+
+All model-derived and GitHub-derived text is rendered as escaped plain text. Labels are suggestions drawn from the repository's existing list. Unsupported effort labels such as “Quick Wins” are withheld because the current tools cannot establish implementation effort. Proposed write actions are always empty.
+
+The public `/demo/report` page displays a **saved real GitHub + Anthropic run** for issue #30264, revalidated with the effort-label guard. Opening it makes no new AI request and does not save a run to your history. Its calendar illustration depicts reported behavior; it is not a screenshot or proof that IssueScout reproduced the bug. Other prepared demo content is not evidence of a live run.
+
+## How to run locally
+
+### 1. Clone and install
+
+Use Node.js 22 LTS and npm, Git, a model-provider account, and access to the team's Firebase and Supabase setup.
 
 ```bash
+git clone https://github.com/Jonathan-Gaal/issueScout.git
+cd issueScout
 npm ci
-cp .env.example .env   # fill in real values — see below
+cp .env.example .env.local
+```
+
+If `.env.local` already exists, edit it instead of copying over it. Replace placeholder values; do not leave placeholder tokens configured. Never commit `.env.local` or a service-account JSON file.
+
+### 2. Configure the environment
+
+Use `.env.example` as the variable reference. The primary tested model path is Anthropic.
+
+| Variable | What to provide |
+| --- | --- |
+| `MODEL_PROVIDER` | `anthropic` |
+| `ANTHROPIC_API_KEY` | Your privately supplied model API key |
+| `ANTHROPIC_MODEL` | A model available to your account; the current configured default is `claude-sonnet-4-5` |
+| `GITHUB_READ_TOKEN` | Your own fine-grained PAT scoped to "Public Repositories (read-only)" — no write permissions, never scoped to private repos |
+| `SUPABASE_URL` | URL of the team's configured database project |
+| `SUPABASE_SERVICE_ROLE_KEY` | Private server-only service-role key, supplied securely by the project owner |
+| `AUTH_PROVIDER` | `firebase` |
+| `ALLOWED_USER_EMAILS` | Comma-separated allowlist of signed-in emails permitted to call the API; see "Set up Firebase" below |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Public Firebase web-app API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase web-app auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID; team project: `issuescout-c2238` |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase web-app ID |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Absolute path to approved server credentials, described below |
+| `CORS_ALLOWED_ORIGINS` | Exact browser origins, including scheme and port; example: `http://localhost:3000` |
+
+If using `http://127.0.0.1:3015`, include that exact origin in `CORS_ALLOWED_ORIGINS`. Multiple origins are comma-separated; do not use a wildcard. Frontend API calls remain same-origin relative paths such as `/api/runs`.
+
+The GitHub client can read public data without a token, but is then subject to GitHub's unauthenticated limits. Remove an unused token variable rather than sending the template's placeholder. The repository to query is resolved once per run from the submitted issue URL itself — there is no separately configured "approved repo"; every subsequent GitHub call for that run is bound to that same repository and rejects any response that doesn't match it.
+
+Groq is an alternative through `MODEL_PROVIDER=groq`, `GROQ_API_KEY`, and `GROQ_MODEL`. It is not the path used for the recorded Anthropic report. Model availability and provider limits must be checked before deployment.
+
+### 3. Set up Firebase browser and server authentication
+
+Access is allowlist-gated: Firebase sign-in (Google or email/password) establishes identity, but the backend separately checks the signed-in email against `ALLOWED_USER_EMAILS` before serving any API request — these are two distinct, independently enforced checks, not one combined guard. Creating a Firebase account does **not** by itself grant API access. Enable Google and Email/Password providers in the same Firebase project if offering both login options. Authorize the development hostname in Firebase Authentication. Email/password users must verify their email before accessing research.
+
+The public `NEXT_PUBLIC_FIREBASE_*` values configure browser sign-in. They are **not Firebase Admin credentials**.
+
+The server uses `firebase-admin` with Application Default Credentials and calls `verifyIdToken(token, true)`. The `true` enables revocation checking, requiring authenticated access to read Firebase Authentication user records.
+
+For local development, obtain an approved service-account JSON for the same Firebase project, with permission to read Authentication users. Keep it outside the repository and set:
+
+```ini
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/outside/repo/firebase-service-account.json
+```
+
+Never prefix this variable or private keys with `NEXT_PUBLIC_`. Do not paste the JSON into chat, a PR, or the README. Exchange it through an approved secure channel.
+
+`firebase login` and `gcloud auth login` authenticate their respective command-line tools; they do not configure this backend's credentials. User-based Application Default Credentials have additional Firebase Authentication requirements and should not be assumed interchangeable with the service-account setup. See [Firebase Admin setup](https://firebase.google.com/docs/admin/setup).
+
+If Google account selection succeeds but the app rejects access, check Admin credentials, project consistency, email verification, the exact allowed origin, and whether the signed-in email is actually present in `ALLOWED_USER_EMAILS`. Do not disable token verification, revocation checks, or the allowlist check to make login appear to work.
+
+### 4. Prepare the database
+
+Ask the project owner whether migrations are already applied. For a new dedicated test database, apply these SQL files in order:
+
+1. `migrations/0001_init.sql`
+2. `supabase/migrations/20261010190601_backend_readiness.sql`
+
+Do not rerun initial table creation on an existing database. These define the Phase 1 tables (`runs`, `issues`, `tool_calls`, `reports`) and the admission/persistence functions. RLS is enabled, but the service-role key bypasses RLS, so server-side ownership checks remain essential. The key must never reach the browser.
+
+### 5. Start and verify
+
+```bash
 npm run dev
 ```
 
-Required environment variables are documented in `.env.example`, with inline notes on which ones are still pending the project owners' sign-off (see "Open items before any deploy" below). At minimum, local development needs:
+Open the URL printed in the terminal and ensure its origin matches `CORS_ALLOWED_ORIGINS`. For port 3015, use `npm run dev -- --port 3015`. Restart the server after changing credentials.
 
-- `ANTHROPIC_API_KEY` (or `GROQ_API_KEY` if `MODEL_PROVIDER=groq`)
-- `GITHUB_READ_TOKEN` (optional locally — without it, GitHub's unauthenticated 60/hr rate limit applies)
-- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
-- `ALLOWED_USER_EMAILS` and a Firebase project configured for `firebase-admin` (Firebase confirmed; see "Auth" below)
+Test the full journey:
 
-### Database
+1. Sign in with a verified, allowlisted account.
+2. Submit a real public issue URL, e.g. `https://github.com/calcom/cal.diy/issues/30264` (any public repo works — it is not limited to this one).
+3. Wait for a newly generated report and inspect its evidence and limitations.
+4. Open history and reopen that saved report.
+5. Sign out; verify protected routes require sign-in again.
+6. With a separate test account, confirm the first account's report is inaccessible.
+7. With a signed-in account that is **not** on the allowlist, confirm the API rejects the request (`401`) even though sign-in itself succeeded.
 
-Apply `migrations/0001_init.sql`, then `supabase/migrations/20261010190601_backend_readiness.sql` to a dedicated Supabase test project before deployment. Existing databases that already have the initial migration need only the second file. Do not re-run the initial table creation. This creates the four Phase-1 tables (`runs`, `issues`, `tool_calls`, `reports`) with Row Level Security enabled on all four, scoped per `SCHEMA.md`.
+A successful saved-preview page alone does not verify this journey. New research makes model API calls and may incur provider charges.
 
-### Running the test suite
+## Tests and verification status
 
 ```bash
-npm test              # all unit + integration + harness tests
-npx vitest run tests/harness/t1.t2.test.ts tests/harness/t3.t4.test.ts tests/harness/t6.t8.test.ts tests/harness/t9.t10.test.ts   # the 8 formal acceptance tests (T1-T4, T6, T8-T10)
+npm test
+npm run type-check
+npm run lint
 ```
 
-## Limits
+`npm test` includes the ordinary tests and readiness audits. `npm run type-check` generates Next.js route types before TypeScript checking.
 
-These are the harness's actual enforced limits (`lib/server/config.ts`), not aspirational targets — a run stops or refuses a call once it hits one of these, rather than running unbounded:
+As of **October 15, 2026**, after the allowlist restore, RLS hardening, and any-public-repo broadening, the suite passed 171 ordinary tests and 14 audit tests, with three tests skipped. TypeScript passed clean. These are recorded results, not a guarantee of future runs.
 
-| Limit | Value |
-|---|---|
-| Max searches per run | 3 |
-| Max results per search | 10 |
-| Max candidate issues read per run | 5 |
-| Max comments read per issue | 20 |
-| Per-request timeout | 20 seconds |
-| Retries per request | 1 (network failures only, never on a 4xx) |
-| Max model turns per run | 15 |
-| Max run duration | 120 seconds |
-| Max retries on invalid model output structure | 1 |
-| Max issue size accepted | 20,000 characters (`ISSUE_MAX_CHARS`) |
-| Max model output tokens | 4,000 (`MAX_OUTPUT_TOKENS`) |
-| Max runs per user per hour | 10 (`RUNS_PER_USER_PER_HOUR`) |
+- **Live research:** successful direct-harness runs used real GitHub data and Anthropic for #30264, and separately against a second, different public repository to confirm the repo is not hardcoded. Attribution was tightened after an overclaim was observed. The final effort-label guard was tested and replayed against saved output without another model call.
+- **Access boundary:** a signed-in but non-allowlisted account is rejected with zero GitHub and model calls in the checked harness path; a request for an issue URL that doesn't match the repository bound to the run is also rejected before any model call.
+- **Injection fixture:** three of three runs of one attack fixture, with mocked GitHub and a live model, executed no off-task calls. This is not a general resistance rate. The fixture was not rerun after the attribution changes.
+- **Local website end to end:** unverified at this checkpoint. Ivaylo's local Firebase Admin credentials are missing; sign-in, report persistence, and history have not been verified together. This describes that local setup, not the state of every deployment.
+- **Model quality:** automated test passes are not aggregate correctness or reliability scores. Untested evaluation dimensions remain unscored.
 
-A run that reaches its time budget after retrieving the issue returns a partial report. If the initial issue cannot be retrieved, it returns a structured failure. Failed candidate reads consume the read budget; format repair consumes the model-turn budget. Labels are paginated to a bounded maximum of 1,000; exceeding it fails visibly.
+Live database tests are opt-in and create/delete synthetic rows in a **dedicated test project**. Set `RUN_LIVE_DB_TESTS=1`, `TEST_SUPABASE_URL`, `TEST_SUPABASE_ANON_KEY`, and `TEST_SUPABASE_SERVICE_ROLE_KEY`, then run:
 
-## What this build does not do (by design, Phase 1)
+```bash
+npx vitest run tests/integration/rls.test.ts
+```
 
-- No write of any kind to GitHub — no labels added, no comments posted, no issues closed. The model is never given a write-capable tool, in any phase. A write-scoped GitHub token is not provisioned this cycle at all (Phase 2 only, gated on the practice-repository name being finalized) — `.env.example` has no entry for one, since there is nothing to template until that decision is made.
-- No approval/action workflow (`actions`/`approvals` tables, `POST /api/actions/:id/decision`) — that's Phase 2, blocked on two still-open product decisions (D4: how an investigated issue enters the practice repository; D5: the practice repository's name).
-- No evaluation endpoints (`POST /api/evals/run`, `GET /api/evals/:id`) — Phase 3.
-- Triage of pull requests, or more than one issue per run.
+Never point these tests at production. Without opt-in they are skipped. Local raw evaluation traces are excluded from Git via `traces/`.
 
-## Auth
+## Bounded research and limitations
 
-Firebase Authentication sits behind a two-function interface (`lib/server/auth.ts`: `verifySession`, `isAllowlisted`) — Firebase was confirmed by Ivaylo on October 10, 2026. The two checks are always called separately, in that order: A verified email and an unrevoked token are required; a valid, signed-in session alone is not enough to use the app — the identity's email must also be present in `ALLOWED_USER_EMAILS`. This app is intentionally not open to the public.
+| Limit | Current value |
+| --- | --- |
+| Searches per run | 3 |
+| Results per search | 10 |
+| Candidate reads per run | 5 |
+| Comments per issue | 20 |
+| GitHub request timeout | 20 seconds |
+| GitHub request retries | 1 for network failures, not 4xx responses |
+| Model turns per run | 15 |
+| Whole-run duration | 120 seconds |
+| Format-repair attempts | 1, within the model-turn budget |
+| Issue size | 20,000 characters by default |
+| Model output | 4,000 tokens by default |
+| Runs per user per hour | 10 by default |
 
-## Open items before any deploy beyond local dev
+See `lib/server/config.ts` for authoritative limits and configurable caps. Anthropic uses the run timeout and the harness's cancellation signal, with no SDK retries. Failed candidate reads consume budget; label pagination is bounded at 1,000 labels. A time-limited run after the initial issue has been retrieved can return a partial report; failure to retrieve the initial issue yields a structured failure.
 
-Remaining environment/constant values in `lib/server/config.ts` are tagged `CONFIRM BEFORE SHIPPING` and still need the project owners' explicit sign-off — grep for that tag before deploying anywhere beyond local development:
+“Completed” means the bounded run finished, not that every relevant issue was found. The recorded report's candidate-read counter includes a repeated read of the original issue, not a distinct related issue. Reading a reporter's test claim does not mean IssueScout ran that test. A mentioned PR is not proof of a verified fix or merge status.
 
-1. **Model provider** (Anthropic vs. Groq) — Anthropic is the primary, fully-tested path; Groq is a best-effort local/cost-free alternative and is **not required to pass the acceptance tests**.
-2. **GitHub read-token scope** — confirm the fine-grained PAT is scoped exactly to the approved repository, read-only.
-3. **Issue size cap, model output token cap, and per-user hourly run cap** — currently 20,000 characters / 4,000 tokens / 10 runs per hour as starting defaults.
-4. **Allowlist configuration** — limit it to Ivaylo and Jonathan’s verified Firebase emails. Firebase itself is confirmed.
+## Explicitly out of scope
 
-### Retention/deletion stance for quoted third-party GitHub text — open escalation, not resolved
+- Fixing bugs, writing code, running tests, or reproducing reported behavior.
+- Posting comments, applying labels, assigning people, closing issues, or any other GitHub writes.
+- Inspecting pull-request code, verifying a proposed fix, or triaging PRs.
+- Researching private repositories or trackers other than public GitHub issues.
+- Automatic new-issue monitoring, bulk triage, or ongoing reporter conversations.
+- Creating new repository labels or guaranteeing exhaustive duplicate detection.
+- An approval/write-back workflow or evaluation API endpoints in this build.
 
-`reports.report` stores quoted third-party GitHub text (issue/comment excerpts) inside its evidence fields. **No retention or deletion stance has been decided for this data.** This is an explicitly open escalation — not something this README, or any part of this build, resolves by omission or by assumption. A deployment broader than the current closed allowlist (a handful of named maintainers) must not happen until the project owners decide a retention/deletion policy for this stored third-party text. Until then, this gap stays visible here rather than being silently treated as settled.
+These boundaries keep the product focused on helping a maintainer understand one issue and decide what to check next. Read-only tools limit potential harm; explicit evidence limits prevent suggestions from being presented as verified facts. Humans take any subsequent action on GitHub themselves.
 
-## Stack
+## Data handling and remaining release decisions
 
-Next.js (App Router, TypeScript) on Vercel, Supabase Postgres, Anthropic Claude (primary) / Groq (best-effort swap), Firebase Auth, Vitest.
+Reports can contain quoted third-party issue/comment text. **The retention and deletion policy remains unresolved.** Agree and document it before widening deployment beyond the current closed allowlist — this is now more material, not less, since the app can research any public repository rather than one. Review provider data terms and deployment credentials as well.
 
-## Backend repair verification (October 10, 2026)
+Before claiming the website is fully working, complete the authenticated journey above, database ownership checks, and configuration review. Confirm token permissions, model availability, usage caps, and retention decisions. No additional features are required to perform those checks.
 
-The API reserves a database run before investigation, atomically saves its report/tool history/outcome, and returns that stored ID. The history endpoint loads only the requesting owner's report. `admit_run` serializes per-user hourly admission; both RPCs are service-role-only and use invoker security. The backend must keep checking ownership because its service key bypasses RLS.
+## Stack and project guides
 
-Firebase Admin uses Application Default Credentials. For local work, set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON file **outside the repository** for your Firebase project. Never send this file to the browser. Use verified Firebase accounts and set `ALLOWED_USER_EMAILS` to the pair's actual login addresses. Add the local or deployed app origin to `CORS_ALLOWED_ORIGINS`. Cross-origin clients must send the bearer token; preflight requires no token. Same-origin browser GET requests may omit Origin when Sec-Fetch-Site is same-origin; authentication still applies.
+Next.js App Router and TypeScript; Firebase Authentication and Admin SDK; Supabase Postgres; GitHub REST API; Anthropic (primary) or Groq; Vitest. Hosting is intended for Vercel.
 
-`npm test` runs both the ordinary tests and the readiness regressions. `npm run type-check` generates Next.js route types first. All GitHub operations remain read-only. Mocked test passes are not a measurement of model quality or proof of production configuration.
+## Security hardening — October 15, 2026
 
-Live database tests are opt-in and create/delete synthetic users and rows in a **dedicated test project**. Supply `RUN_LIVE_DB_TESTS=1`, `TEST_SUPABASE_URL`, `TEST_SUPABASE_ANON_KEY`, and `TEST_SUPABASE_SERVICE_ROLE_KEY` in your shell, then run `npx vitest run tests/integration/rls.test.ts`. Do not point this at a production project. Without opt-in these tests are reported as skipped; with incomplete configuration they fail.
+Ivaylo's October 14, 2026 decision to open signup/login to everyone had silently reverted a previously-closed requirement (PRD §9 finding #1, TRD §5's two-check auth gate), caught by this session's red-alert security audit (FAIL, critical). `/signup` and `/signin` still work via Firebase (Google or email/password); creating an account no longer implies API access — the backend separately re-enforces `ALLOWED_USER_EMAILS` on top of a verified session. The same change broadened the app from one hardcoded repository (`calcom/cal.diy`) to any public GitHub repository, and added `WITH CHECK` to the `runs_update_own` RLS policy as defense-in-depth. See `log.md` for the full decision record.
 
-Before frontend sign-off: apply both migrations to the test database, run the live tests, then verify real Firebase sign-in, one model-backed triage, saved-report retrieval, and rejection under the other user's session. Confirm read-token scope, provider/limits, and retention decisions. No migration has been applied to a cloud database by this repair.
-
-## Public registration — reverted, October 15, 2026
-
-Ivaylo's October 14, 2026 decision to open signup/login to everyone was reverted following this session's red-alert security audit (FAIL, critical — PRD §9 finding #1, TRD §5's two-check auth requirement had silently regressed). `/signup` and `/signin` still work via Firebase (Google or email/password); creating an account no longer implies API access. The backend now re-enforces `ALLOWED_USER_EMAILS` on top of a verified session, as originally specified. See `log.md` for the full decision record.
+See `APPFLOW.md`, `DESIGN-BRIEF.md`, `USER-STORIES.md`, `SCHEMA.md`, and `.env.example` for flows, interface requirements, data structure, and configuration. The shared API contract lives in `lib/contract.ts`.

@@ -174,9 +174,9 @@
 @media(max-width:760px){.editorial .workspace-main{padding:26px 20px 36px}.editorial .workspace-page-heading h1{font-size:32px;line-height:1.15;letter-spacing:-1px}.editorial .workspace-topbar{gap:12px}.editorial .report-toolbar{flex-wrap:wrap}.editorial .report-toolbar .workspace-button{font-size:12px;padding:10px 16px}.editorial .studio-actions{gap:10px}.editorial .studio-actions .studio-button{padding:12px 19px}.editorial .workspace-footer{gap:12px 20px}.editorial .history-heading{gap:14px}}
 
 /* Email authentication matches the gold glass account panels. */
-.auth-email-form { display: grid; gap: 12px; margin: 26px 0 0; }
+.auth-email-form { display: grid; gap: 8px; margin: 20px 0 0; }
 .auth-email-form label { color: #f0e7d3; font-size: .9rem; font-weight: 600; }
-.auth-email-form input { width: 100%; min-width: 0; box-sizing: border-box; padding: 16px 18px; border: 1px solid rgba(224,198,139,.4); border-radius: 14px; background: rgba(255,255,255,.07); color: #fff; font: inherit; }
+.auth-email-form input { width: 100%; min-width: 0; box-sizing: border-box; height: 44px; min-height: 44px; padding: 10px 14px; border: 1px solid rgba(224,198,139,.4); border-radius: 10px; background: rgba(255,255,255,.07); color: #fff; font: inherit; font-size: 14px; line-height: 22px; }
 .auth-email-form input::placeholder { color: #aeb9c6; }
 .auth-email-form input:focus-visible { outline: 2px solid #e0c68b; outline-offset: 3px; }
 .auth-email-form .workspace-button { margin-top: 8px; }
@@ -208,3 +208,44 @@
 
 .editorial .workspace-topbar .workspace-signout { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 20px; border:1px solid #b58b40; border-radius:12px; background:linear-gradient(120deg,#eddaaa,#d0ab62); color:#352a16; font:inherit; font-weight:650; cursor:pointer; white-space:nowrap; }
 .editorial .workspace-topbar .workspace-signout:disabled { opacity:.65; cursor:wait; }
+
+/* Match the landing preview's gentle float; keep the form still while in use. */
+.editorial.motion-on .signin-layout > .auth-panel {
+  animation: auth-card-float 8s ease-in-out infinite;
+}
+@keyframes auth-card-float {
+  0%, 100% { translate: 0 0; }
+  25% { translate: 6px -6px; }
+  50% { translate: 0 -12px; }
+  75% { translate: -6px -6px; }
+}
+.editorial.motion-on .signin-layout > .auth-panel:hover,
+.editorial.motion-on .signin-layout > .auth-panel:focus-within {
+  animation-play-state: paused;
+}
+
+/* Compact account forms, sized like workspace controls. */
+.editorial .signin-layout > .auth-panel {
+  width: 100%;
+  max-width: 400px;
+  justify-self: center;
+  padding: 24px;
+}
+.editorial .auth-panel h2 { font-size: 24px; margin: 20px 0 12px; }
+.editorial .auth-panel > p { font-size: 13px; line-height: 1.6; }
+.editorial .auth-panel .auth-email-form { gap: 6px; margin-top: 16px; }
+.editorial .auth-panel .auth-email-form label { font-size: 12px; }
+.editorial .auth-panel .auth-email-form input {
+  height: 40px;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 20px;
+  border-radius: 8px;
+}
+.editorial .auth-panel .workspace-button { min-height: 40px; padding: 10px 14px; font-size: 13px; }
+.editorial .auth-panel .signin-divider { margin: 20px 0; }
+@media (max-width: 600px) {
+  .editorial .signin-layout > .auth-panel { padding: 20px; }
+  .editorial .auth-panel .auth-email-form input { font-size: 16px; }
+}
