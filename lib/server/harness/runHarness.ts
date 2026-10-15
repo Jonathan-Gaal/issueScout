@@ -87,13 +87,6 @@ function tryParseJson(text: string): unknown {
   }
 }
 
-const MODEL_REPORT_KEYS = new Set([
-  "summary", "category", "categoryReason", "priority", "priorityEvidence",
-  "priorityUncertainty", "suggestedLabels", "evidence", "missingInformation",
-  "relatedIssues", "recommendedNextStep", "proposedActions",
-  "containsEmbeddedInstructions", "limitations",
-]);
-
 function slugifyEnumValue(value: unknown): unknown {
   return typeof value === "string"
     ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
@@ -137,10 +130,12 @@ function normalizeRelatedIssueItem(item: unknown): unknown {
 function normalizeModelReportShape(input: unknown): unknown {
   if (typeof input !== "object" || input === null || Array.isArray(input)) return input;
   const record = input as Record<string, unknown>;
-  const normalized: Record<string, unknown> = {};
-  for (const key of Object.keys(record)) {
-    if (MODEL_REPORT_KEYS.has(key)) normalized[key] = record[key];
-  }
+  // Copies every key through unchanged, including ones the model has no
+  // business emitting (e.g. harness-owned `issue`/`coverage`) — schema
+  // .strict() is the trust boundary that rejects those; this function only
+  // tolerates format variance in fields the model legitimately controls,
+  // it never decides which top-level keys are allowed to exist.
+  const normalized: Record<string, unknown> = { ...record };
   if ("category" in normalized) normalized.category = slugifyEnumValue(normalized.category);
   if ("priority" in normalized) normalized.priority = slugifyEnumValue(normalized.priority);
   if (Array.isArray(normalized.evidence)) normalized.evidence = normalized.evidence.map(normalizeEvidenceItem);
