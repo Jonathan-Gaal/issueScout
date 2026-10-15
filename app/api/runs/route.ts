@@ -12,7 +12,7 @@ export { handlePreflight as OPTIONS } from "../../../lib/server/cors";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buildApiErrorBody, getErrorStatus } from "../../../lib/server/errors";
-import { verifySession } from "../../../lib/server/auth";
+import { verifySession, isAllowlisted } from "../../../lib/server/auth";
 import { buildCorsHeaders, buildCorsRejectedResponse, checkCorsOrigin } from "../../../lib/server/cors";
 import { runs } from "../../../lib/server/db/runs";
 import { runHarness } from "../../../lib/server/harness/runHarness";
@@ -32,6 +32,12 @@ export async function POST(req: Request): Promise<Response> {
 
   const identity = await verifySession(req);
   if (!identity) {
+    return NextResponse.json(buildApiErrorBody("unauthorized"), {
+      status: getErrorStatus("unauthorized"),
+      headers: corsHeaders,
+    });
+  }
+  if (!isAllowlisted(identity.email)) {
     return NextResponse.json(buildApiErrorBody("unauthorized"), {
       status: getErrorStatus("unauthorized"),
       headers: corsHeaders,
@@ -103,6 +109,12 @@ export async function GET(req: Request): Promise<Response> {
 
   const identity = await verifySession(req);
   if (!identity) {
+    return NextResponse.json(buildApiErrorBody("unauthorized"), {
+      status: getErrorStatus("unauthorized"),
+      headers: corsHeaders,
+    });
+  }
+  if (!isAllowlisted(identity.email)) {
     return NextResponse.json(buildApiErrorBody("unauthorized"), {
       status: getErrorStatus("unauthorized"),
       headers: corsHeaders,

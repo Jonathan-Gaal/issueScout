@@ -59,6 +59,7 @@ async function setUpMocks() {
       const token = authHeader?.split(" ")[1];
       return token ? TOKEN_TO_USER[token] ?? null : null;
     }),
+    isAllowlisted: vi.fn((email: string) => email === USER_A.email || email === USER_B.email),
   }));
 
   vi.doMock("../../lib/server/db/runs", () => ({
@@ -197,12 +198,13 @@ describe("API routes — IDOR, auth, and CORS enforcement", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).not.toBe(DISALLOWED_ORIGIN);
   });
 
-  it("accepts a new verified public user while rejecting an anonymous request", async () => {
+  it("rejects a verified-but-non-allowlisted user while accepting an allowlisted one", async () => {
     await setUpMocks();
     const { GET } = await import("../../app/api/runs/route");
-    const response = await GET(createRequest({ method: "GET", url: "https://api.example.com/api/runs", origin: ALLOWED_ORIGIN, bearerToken: "token-new-user" }));
-    expect(response.status).toBe(200);
-    expect((await response.json()).runs).toEqual([]);
+    const nonAllowlisted = await GET(createRequest({ method: "GET", url: "https://api.example.com/api/runs", origin: ALLOWED_ORIGIN, bearerToken: "token-new-user" }));
+    expect(nonAllowlisted.status).toBe(401);
+    const allowlisted = await GET(createRequest({ method: "GET", url: "https://api.example.com/api/runs", origin: ALLOWED_ORIGIN, bearerToken: "token-user-a" }));
+    expect(allowlisted.status).toBe(200);
     const anonymous = await GET(createRequest({ method: "GET", url: "https://api.example.com/api/runs", origin: ALLOWED_ORIGIN }));
     expect(anonymous.status).toBe(401);
   });
