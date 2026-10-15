@@ -87,6 +87,80 @@ function tryParseJson(text: string): unknown {
   }
 }
 
+function slugifyEnumValue(value: unknown): unknown {
+  return typeof value === "string"
+    ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+    : value;
+}
+
+function normalizeEvidenceItem(item: unknown): unknown {
+  if (typeof item !== "object" || item === null) return item;
+  const record = item as Record<string, unknown>;
+  if (typeof record.observation === "string" && typeof record.sourceUrl === "string") return item;
+  const observation = record.observation ?? record.description ?? record.detail;
+  const sourceUrl = record.sourceUrl ?? record.source ?? record.url;
+  return typeof observation === "string" && typeof sourceUrl === "string"
+    ? { observation, sourceUrl }
+    : item;
+}
+
+function normalizeRelatedIssueItem(item: unknown): unknown {
+  if (typeof item !== "object" || item === null) return item;
+  const record = item as Record<string, unknown>;
+  const similarities = record.similarities ?? record.relationship ?? record.similarity;
+  const differences = record.differences ?? record.analysis ?? record.difference;
+  return {
+    number: record.number,
+    title: record.title,
+    url: record.url,
+    similarities,
+    differences,
+    assessment: slugifyEnumValue(record.assessment),
+  };
+}
+
+// The model sometimes emits near-miss formatting that doesn't change the
+// substance of its answer: Title Case enum values instead of snake_case,
+// an evidence item shaped {type, description, source} instead of
+// {observation, sourceUrl}, or an extra `issue` key the harness already
+// derives itself from retrieved data. Tolerating these specific, observed
+// variants here — before the strict schema gate — spends the one
+// format-retry budget on a real mistake rather than formatting noise. It
+// does not relax which fields are required or what they must mean.
+function normalizeModelReportShape(input: unknown): unknown {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) return input;
+  const record = input as Record<string, unknown>;
+  // Copies every key through unchanged, including ones the model has no
+  // business emitting (e.g. harness-owned `issue`/`coverage`) — schema
+  // .strict() is the trust boundary that rejects those; this function only
+  // tolerates format variance in fields the model legitimately controls,
+  // it never decides which top-level keys are allowed to exist.
+  const normalized: Record<string, unknown> = { ...record };
+  if ("category" in normalized) normalized.category = slugifyEnumValue(normalized.category);
+  if ("priority" in normalized) normalized.priority = slugifyEnumValue(normalized.priority);
+  if (Array.isArray(normalized.evidence)) normalized.evidence = normalized.evidence.map(normalizeEvidenceItem);
+  if (Array.isArray(normalized.relatedIssues)) {
+    // The model occasionally emits a placeholder "no related issue found"
+    // entry with null number/title/url instead of just leaving the array
+    // empty. Drop it rather than normalize it into a fake entry.
+    normalized.relatedIssues = normalized.relatedIssues
+      .filter((item) => {
+        if (typeof item !== "object" || item === null) return true;
+        const r = item as Record<string, unknown>;
+        return r.number != null || r.title != null || r.url != null;
+      })
+      .map(normalizeRelatedIssueItem);
+  }
+  // Step 9 force-overwrites proposedActions to [] regardless of what the
+  // model emits (Phase-1 read-only invariant, lib/contract.ts's
+  // ProposedAction comment) — its content is discarded unconditionally.
+  // Letting a malformed shape here (e.g. `type`/`status` instead of the
+  // `kind` discriminator) fail the whole run blocks every other,
+  // otherwise-valid field over data nobody will ever read.
+  if ("proposedActions" in normalized) normalized.proposedActions = [];
+  return normalized;
+}
+
 /**
  * Runs one full triage: TRD §2 steps 1-9. Every exit path returns a
  * typed RunHarnessResult — never undefined/null (TRD §4 Reliability).
@@ -251,7 +325,7 @@ async function runHarnessInner(
   // ---- Step 6: structure validation (zod), one retry ----
   let validatedModelReport: ModelReport | undefined;
   if (!stoppedEarly) {
-    let parseResult = ModelReportSchema.safeParse(finalModelReportJson);
+    let parseResult = ModelReportSchema.safeParse(normalizeModelReportShape(finalModelReportJson));
     let formatRetriesUsed = 0;
 
     while (!parseResult.success && formatRetriesUsed < config.maxFormatRetries && modelTurnsUsed < config.maxModelTurns) {
@@ -273,7 +347,7 @@ async function runHarnessInner(
         maxOutputTokens: config.maxOutputTokens,
       });
       const retryJson = tryParseJson(extractTextFromModelResponse(retryResponse.content));
-      parseResult = ModelReportSchema.safeParse(retryJson);
+      parseResult = ModelReportSchema.safeParse(normalizeModelReportShape(retryJson));
     }
 
     if (!parseResult.success) {
