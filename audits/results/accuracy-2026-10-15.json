@@ -1,0 +1,82 @@
+{
+  "round": "wording and research-budget rerun",
+  "scope": "Four live GitHub/model cases; local persistence/rate counting. Not website E2E.",
+  "changes": [
+    "Provider-by-field and workaround consistency instructions in generator and reviewer.",
+    "Concise output and no primary reread instructions; remaining tool budgets supplied after calls.",
+    "At 35% of research clock or three turns remaining, tools removed and report requested; overall 120-second abort unchanged.",
+    "Review checks for already-answered questions and expected behavior."
+  ],
+  "results": [
+    {
+      "issue": 30264,
+      "status": "completed",
+      "seconds": 35.2,
+      "stopReason": "completed",
+      "reviewCompleted": true,
+      "countsMatchTrace": true,
+      "toolErrors": 0,
+      "repeatedIdenticalGitHubCalls": 0,
+      "accuracy": "partial",
+      "notes": [
+        "Provider-specific scope is now preserved: Outlook subject/body versus Google/Office title; no claim that Google/Office description encoding is broken.",
+        "Label attribution retained; no effort claim. Explicit full-title/full-description expected outcome remains omitted, and summary exceeds requested length: completeness/style still partial."
+      ],
+      "trace": "accuracy-30264.json"
+    },
+    {
+      "issue": 30348,
+      "status": "completed",
+      "seconds": 36.3,
+      "stopReason": "completed",
+      "reviewCompleted": true,
+      "countsMatchTrace": true,
+      "toolErrors": 0,
+      "repeatedIdenticalGitHubCalls": 0,
+      "accuracy": "partial",
+      "notes": [
+        "Completed within deadline; preserves space splitting, comma compatibility and unknown-token validation; unsupported priority justification withheld.",
+        "RFC 6749 is introduced as reporter-attributed context although the retrieved primary issue does not name that RFC: attribution still partial."
+      ],
+      "trace": "accuracy-30348.json"
+    },
+    {
+      "issue": 30345,
+      "status": "completed",
+      "seconds": 42.0,
+      "stopReason": "completed",
+      "reviewCompleted": true,
+      "countsMatchTrace": true,
+      "toolErrors": 0,
+      "repeatedIdenticalGitHubCalls": 0,
+      "accuracy": "passed reviewed case checks",
+      "notes": [
+        "Manual link-sharing workaround remains explicit in summary, priority and evidence; label no longer claims all manual notification is impossible.",
+        "Scope remains uncertain, commenter tests are attributed, no self-hosted assumption or independently verified bug claim."
+      ],
+      "trace": "accuracy-30345.json"
+    },
+    {
+      "issue": 30340,
+      "status": "completed",
+      "seconds": 51.5,
+      "stopReason": "completed",
+      "reviewCompleted": true,
+      "countsMatchTrace": true,
+      "toolErrors": 0,
+      "repeatedIdenticalGitHubCalls": 0,
+      "accuracy": "passed reviewed case checks",
+      "notes": [
+        "Feature request priority is not_assigned in this live run. Approval dates and related-issue facts remain attributed; no claim IssueScout implemented or verified an integration.",
+        "Related PR mentions remain source reports, not current PR status checks; human review required."
+      ],
+      "trace": "accuracy-30340.json"
+    }
+  ],
+  "limits": [
+    "Four completions are a small sample, not a general reliability rate.",
+    "Semantic auditor still misses omissions and some source attribution. No blanket accuracy pass.",
+    "First pass of this turn preserved in accuracy-round5-first-pass; prior round in accuracy-round4-before-wording.",
+    "Changes local, not deployed; displayed report unchanged."
+  ]
+}

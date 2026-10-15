@@ -1,3 +1,7 @@
+// These legacy tests isolate classification/content filtering. Evidence-review behavior
+// is tested separately with the real reviewer in claimReview.test.ts.
+import type { ModelReport } from "../../lib/contract";
+vi.mock("../../lib/server/harness/claimReview", () => ({ reviewClaims: async (report: ModelReport) => ({ report, removed: [], audit: null }) }));
 // T9/T10 — Build Spec §11, verbatim pass conditions. Expected output
 // written before running, per Build Spec §11's instruction.
 

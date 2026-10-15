@@ -117,7 +117,7 @@ npm run lint
 
 `npm test` includes the ordinary tests and readiness audits. `npm run type-check` generates Next.js route types before TypeScript checking.
 
-As of **October 15, 2026**, after the allowlist restore, RLS hardening, and any-public-repo broadening, the suite passed 171 ordinary tests and 14 audit tests, with three tests skipped. TypeScript passed clean. These are recorded results, not a guarantee of future runs.
+As of **October 15, 2026**, after the allowlist restore, RLS hardening, any-public-repo broadening, and evidence-grounded claim review, the suite passed 178 ordinary tests and 14 audit tests, with three tests skipped. TypeScript passed clean. These are recorded results, not a guarantee of future runs.
 
 - **Live research:** successful direct-harness runs used real GitHub data and Anthropic for #30264, and separately against a second, different public repository to confirm the repo is not hardcoded. Attribution was tightened after an overclaim was observed. The final effort-label guard was tested and replayed against saved output without another model call.
 - **Access boundary:** a signed-in but non-allowlisted account is rejected with zero GitHub and model calls in the checked harness path; a request for an issue URL that doesn't match the repository bound to the run is also rejected before any model call.
