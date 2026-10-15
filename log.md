@@ -134,6 +134,7 @@ No production deploy performed — that stays an explicit separate human step pe
 - `tests/integration/rls.test.ts` automated test still skipped pending real Supabase credentials (manually verified instead, per Wheeljack's log entry).
 - D9 (auth provider) still pending Ivaylo's explicit sign-off — PRD §12 Definition of Done not yet met on this point.
 - Retention/deletion stance for quoted third-party GitHub text (PRD §9 finding #6) — unresolved product escalation.
+- The stray `issuescout/` scaffold directory at the repo root is still untracked, unused leftover from before spec 001 relocated the real app to the project root — candidate for deletion, not yet acted on.
 
 ---
 
@@ -156,4 +157,17 @@ Commit `acf9ebf` ("Enable public Google signup and preserve private report owner
 **Not done here, explicitly flagged for Ivaylo:** this session separately broadened repo scope from one hardcoded repo (`calcom/cal.diy`) to any public GitHub repo, which touches the shared `ErrorCode` contract (`repo_not_allowed` removed — see below) and the frozen system-prompt text. Both are called out again in that work's own log entry.
 
 **Confirm before relying on this:** `.env`'s `ALLOWED_USER_EMAILS` was set to `jonathangaal@pursuit.org,ivaylo.nanev@pursuit.org` — the second address is inferred from Ivaylo's git commit author email, not confirmed as his actual Firebase/Google sign-in identity. Verify this before deploying; a wrong value locks out the only two legitimate users.
-- The stray `issuescout/` scaffold directory at the repo root is still untracked, unused leftover from before spec 001 relocated the real app to the project root — candidate for deletion, not yet acted on.
+
+---
+
+### [DECISION] Repo scope broadened from one hardcoded repo to any public GitHub repo
+
+Done together with the allowlist restoration above, since Red-Alert's finding #3 was explicit that this must not ship while the allowlist regression was open — closing that is what unblocked this.
+
+`parseIssueUrl` no longer takes an `approvedRepo` parameter; `RestGitHubClient` now binds its repo once at construction, from the validated input URL, rather than reading a single global `config.approvedRepo`. `config.approvedRepo`/`APPROVED_REPO` and the `repo_not_allowed` error code are deleted entirely — every backend reader updated. The frozen system prompt's step 1 ("...in the approved repository") is reworded to "...for a public GitHub repository"; `tests/fixtures/frozen-system-prompt.txt` updated to match byte-for-byte, per that file's own dual-owner-sign-off requirement — done under the same joint-ownership authorization as the copy revert above, not silently.
+
+**Touches Ivaylo's files in two places, both minimal and flagged:** `lib/client/api.ts`'s exhaustive `isAccessError` switch had a `case "repo_not_allowed":` that TypeScript's `satisfies`-style exhaustiveness check forced to be removed once the type no longer exists — left everything else in that file untouched. `components/*`/`lib/client/config.ts` still reference `clientConfig.approvedRepo` for display copy ("Currently supports calcom/cal.diy") — **not touched here**, since it's cosmetic (the backend no longer enforces that restriction, so the copy is just stale, not functionally wrong) and squarely Ivaylo's slice; flagged for him to clean up when his branch starts.
+
+**Manually verified, not just unit-tested:** ran a full live triage against a second, different repo (`react/react#37837` — real open issue, not part of any fixture) end-to-end — correct repo-scoped GitHub search, correct report, `status: completed`. Re-ran the original `calcom/cal.diy#30264` case afterward to confirm no regression; also passed.
+
+**Not done here — manual, credential-handling action for Jonathan:** the live `GITHUB_READ_TOKEN` was separately found (this session) to already read `facebook/react` successfully, meaning its real GitHub-side scope already exceeded the old single-repo design before this change. For "any public repo" to be the intentional, reviewed boundary rather than an accident of an over-scoped credential, regenerate it as a fine-grained PAT scoped to "Public Repositories (read-only)" (GitHub → Settings → Developer settings → Fine-grained tokens) and replace the deployment's `GITHUB_READ_TOKEN`. Nothing in this change depends on that token's exact scope — the app-layer gate against overbroad targets no longer exists by design — so this is purely about making the credential match the now-intended boundary, not a blocker for the code itself.
