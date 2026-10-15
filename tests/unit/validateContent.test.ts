@@ -23,6 +23,20 @@ function createBaseModelReport(overrides: Partial<ModelReport> = {}): ModelRepor
 }
 
 describe("validateContent", () => {
+  it.each(["⚡ Quick Wins", "quick-wins", "✅ good first issue", "Easy", "low-effort"])("withholds unsupported effort label %s even when it exists", (name) => {
+    const report = createBaseModelReport({ suggestedLabels: [{ name, reason: "The reporter claims it is easy." }, { name: "bug", reason: "Reporter describes a defect." }] });
+    const result = validateContent(report, { realLabelNames: new Set([name, "bug"]), retrievedIssueNumbers: new Set(), retrievedUrls: new Set() });
+    expect(result.cleanedReport.suggestedLabels.map(x => x.name)).toEqual(["bug"]);
+    expect(result.removedByValidation).toContain(`unsupportedEffortLabel:${name}`);
+    expect(result.cleanedReport.limitations.join(" ")).toContain("has not inspected the implementation");
+    expect(report.suggestedLabels).toHaveLength(2);
+  });
+
+  it("does not allow an easy-fix claim under an otherwise valid label", () => {
+    const result = validateContent(createBaseModelReport({ suggestedLabels: [{ name: "bug", reason: "This is a straightforward fix." }] }), { realLabelNames: new Set(["bug"]), retrievedIssueNumbers: new Set(), retrievedUrls: new Set() });
+    expect(result.cleanedReport.suggestedLabels).toEqual([]);
+  });
+
   it("strips a suggestedLabel not in the real label list and records it", () => {
     const report = createBaseModelReport({
       suggestedLabels: [

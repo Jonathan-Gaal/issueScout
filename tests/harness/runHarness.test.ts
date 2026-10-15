@@ -56,6 +56,22 @@ function createFakeModelProvider(responses: ModelResponse[]): ModelProvider {
 const alwaysAllowedRateCheck = async () => 0;
 
 describe("runHarness", () => {
+  it("accepts one JSON fence while preserving strict schema validation", async () => {
+    const provider = createFakeModelProvider([{ content: [{ type: "text", text: "```json\n" + JSON.stringify(VALID_MODEL_REPORT_JSON) + "\n```" }], stopReason: "end_turn" }]);
+    const result = await runHarness({ issueUrl: APPROVED_ISSUE_URL, userId: "test" }, { githubClient: createFakeGitHubClient(), modelProvider: provider, countRunsInLastHour: alwaysAllowedRateCheck });
+    expect(result.status).toBe("completed");
+  });
+
+  it.each([
+    "Prose before\n```json\n" + JSON.stringify(VALID_MODEL_REPORT_JSON) + "\n```",
+    "```json\n" + JSON.stringify({ ...VALID_MODEL_REPORT_JSON, issue: { number: 42 } }) + "\n```",
+    "```json\n" + JSON.stringify({ ...VALID_MODEL_REPORT_JSON, coverage: {} }) + "\n```",
+  ])("rejects prose and harness-owned fields even in fenced output", async (text) => {
+    const provider = createFakeModelProvider([{ content: [{ type: "text", text }], stopReason: "end_turn" }]);
+    const result = await runHarness({ issueUrl: APPROVED_ISSUE_URL, userId: "test" }, { githubClient: createFakeGitHubClient(), modelProvider: provider, countRunsInLastHour: alwaysAllowedRateCheck });
+    expect(result.errorCode).toBe("model_output_invalid");
+  });
+
   it("(a) a clean fixture run returns status: completed with coverage.stopReason === 'completed'", async () => {
     const githubClient = createFakeGitHubClient();
     const modelProvider = createFakeModelProvider([

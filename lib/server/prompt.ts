@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { ModelReportSchema } from "./schemas/modelReport";
+
 // System prompt v0 — Build Spec §10, verbatim. Changes need both
 // owners' agreement (Build Spec §10); tests/unit/prompt.test.ts enforces
 // this as a byte-diff check against tests/fixtures/frozen-system-prompt.txt,
@@ -55,8 +58,23 @@ Refuse requests outside triaging one issue, such as writing code, acting on anot
 const MODEL_REPORT_OUTPUT_INSTRUCTION = `
 Return your final answer as a single JSON object matching the ModelReport structure described above (summary, category, categoryReason, priority, priorityEvidence, priorityUncertainty, suggestedLabels, evidence, missingInformation, relatedIssues, recommendedNextStep, proposedActions, containsEmbeddedInstructions, limitations). Do not wrap it in prose or markdown formatting.`;
 
+// Attribution clarification added after live evaluation exposed overclaiming.
+const ATTRIBUTION_INSTRUCTION = `
+EVIDENCE ATTRIBUTION — applies to every field, including summary, priority, labels, evidence, and next step:
+- Describe issue-body assertions as "The reporter reports..." or "The reporter claims...". Describe comment assertions as "A commenter reports...". Link each evidence item to the source actually read.
+- A reporter's passing unit test is a reporter claim, never independent verification. IssueScout has not run code, reproduced the bug, inspected a fix, or verified a test merely by reading an issue or comment.
+- If a comment mentions a PR, say "A commenter reports that PR #N proposes a fix and tests" where supported. Do not attribute the PR to the reporter unless authorship was established. Do not state its contents, quality, current status, or merge status as verified.
+- The current tools cannot inspect PRs. When one is mentioned, explicitly state in limitations: "IssueScout did not inspect the pull request or verify its status, code changes, or tests."
+- State what IssueScout actually checked in limitations: it retrieved the issue/comments and performed the recorded searches. This confirms the presence of those reports, not their technical truth. Distinguish proposed workarounds from tested workarounds.
+- Suggested-label reasons must attribute source claims too, even when the summary already does so. Start source-based reasons with "The reporter reports..." or "A commenter reports...". Do not say simply "a PR has been opened with tests".
+- Label reasons should describe the reported symptom or affected area. Do not suggest effort or onboarding labels such as Quick Wins or good first issue based solely on a reporter's proposed fix: IssueScout has not inspected the code or established implementation effort. A priority label is IssueScout's provisional assessment, not a verified fact.
+- Keep next steps as requests for human verification, never imply that an uninspected fix is already correct.
+`;
+
 /** The full system prompt sent to the model: Build Spec §10 verbatim, plus the ModelReport output instruction it calls for. */
-export const SYSTEM_PROMPT = VERBATIM_SYSTEM_PROMPT + MODEL_REPORT_OUTPUT_INSTRUCTION;
+export const SYSTEM_PROMPT = VERBATIM_SYSTEM_PROMPT + MODEL_REPORT_OUTPUT_INSTRUCTION + ATTRIBUTION_INSTRUCTION +
+  "\nThe exact output JSON Schema follows. Do not add issue or coverage; the harness supplies them. proposedActions must be an empty array in this read-only version.\n" +
+  JSON.stringify(z.toJSONSchema(ModelReportSchema));
 
 /** Exported separately so the byte-diff test can check only the verbatim portion against the frozen fixture. */
 export const VERBATIM_SYSTEM_PROMPT_FOR_TESTING = VERBATIM_SYSTEM_PROMPT;

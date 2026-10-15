@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
+import { BackendFailure } from "../failure";
 import {
   ModelProviderConfigError,
   type ModelCompletionParams,
@@ -69,11 +70,13 @@ export class AnthropicProvider implements ModelProvider {
         "ANTHROPIC_API_KEY is not set but modelProvider is 'anthropic'."
       );
     }
-    this.client = new Anthropic({ apiKey: config.anthropicApiKey, maxRetries: 0, timeout: config.requestTimeoutSeconds * 1000 });
+    this.client = new Anthropic({ apiKey: config.anthropicApiKey, maxRetries: 0, timeout: config.maxRunSeconds * 1000 });
     this.model = config.anthropicModel;
   }
 
   async complete(params: ModelCompletionParams): Promise<ModelResponse> {
+    // The harness abort signal enforces the remaining whole-run budget.
+    // Model generation must not inherit the shorter GitHub request timeout.
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: params.maxOutputTokens,
@@ -100,7 +103,12 @@ export class AnthropicProvider implements ModelProvider {
           };
         }),
       })),
-    }, { signal: params.signal });
+    }, { signal: params.signal }).catch((error: unknown) => {
+      if (error instanceof Anthropic.APIConnectionTimeoutError || params.signal?.aborted) {
+        throw new BackendFailure("timeout");
+      }
+      throw error;
+    });
 
     return {
       content: normalizeAnthropicContent(response.content),
