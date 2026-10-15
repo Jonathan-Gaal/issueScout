@@ -134,4 +134,26 @@ No production deploy performed — that stays an explicit separate human step pe
 - `tests/integration/rls.test.ts` automated test still skipped pending real Supabase credentials (manually verified instead, per Wheeljack's log entry).
 - D9 (auth provider) still pending Ivaylo's explicit sign-off — PRD §12 Definition of Done not yet met on this point.
 - Retention/deletion stance for quoted third-party GitHub text (PRD §9 finding #6) — unresolved product escalation.
+
+---
+
+## 2026-10-15 — Red-Alert + Soundwave (re-dispatched) + Jonathan (joint-ownership fixes)
+
+### [DECISION] Oct 14 public-signup change reverted — PRD §9 finding #1 had silently regressed
+
+Commit `acf9ebf` ("Enable public Google signup and preserve private report ownership", Ivaylo, Oct 14) deleted `isAllowlisted()` from `lib/server/auth.ts` and `config.allowedUserEmails`, removing the second half of the two-check auth gate this log's 2026-10-08 entry above had explicitly marked **CONFIRMED closed**. Re-dispatching Red-Alert Mode 2 and Soundwave against the current codebase (not a fresh audit — a targeted re-check of exactly this finding, same methodology as the original close-out) found:
+
+- **Red-Alert: FAIL, critical.** Any Firebase-verified identity — Google or, after the later email/password commit, email+password — could call `/api/runs`, not just the allowlisted pair. `app/api/runs/route.ts`'s own header comment ("two-check auth") had gone stale and no longer matched the code beneath it.
+- **Soundwave: data confidentiality intact, cost/credential exposure real.** `db.runs`'s ownership-scoped queries meant a new signup could never read another user's existing reports — the "preserve private report ownership" half of the Oct 14 commit's own stated intent held up. But every new signup got its own fresh `runsPerUserPerHour` allowance against the shared `ANTHROPIC_API_KEY`/`GITHUB_READ_TOKEN`, with zero logging of signups or token spend to detect it (closed separately, see the observability work below).
+
+**Action taken, under Jonathan and Ivaylo's joint ownership of this project, logged here rather than silently overwritten:**
+- Restored `isAllowlisted()`/`config.allowedUserEmails` and the two call sites (`lib/server/auth.ts`, both `app/api/runs/route.ts` handlers, `app/api/runs/[id]/route.ts`).
+- Reverted the misleading UI copy the Oct 14 commit introduced: `AccessGate.tsx`'s "Anyone can create an account with Google" and `SignIn.tsx`'s "No invitation needed" badge, both of which now claim open access that no longer exists. The email/password signup flow itself (added later, on top of the Oct 14 decision) was **kept** — it's a legitimate sign-in method orthogonal to allowlist gating, not something this revert needed to remove; a non-allowlisted signup still correctly lands on `/not-authorized` via the existing `isAccessError` redirect in `AccessGate.tsx`'s `VerifiedAccess`.
+- Reverted `README.md`'s intro line and retention-stance paragraph to allowlist-aware wording, and replaced the "Public registration decision" section with this entry's pointer rather than deleting it outright.
+- Reverted `FRONTEND-HANDOFF.md`'s three touched spots (env setup step 4, day-1 test plan, "not yet verified" section).
+- Added `WITH CHECK` to the `runs_update_own` RLS policy (new migration `20261015193012_runs_update_with_check.sql`) — Red-Alert flagged the missing clause separately; low severity today since only `service_role` writes, but closed as defense-in-depth. **Must still be applied manually via the Supabase SQL editor against the live instance — no CLI/DB credentials were available in this session to apply it directly.**
+
+**Not done here, explicitly flagged for Ivaylo:** this session separately broadened repo scope from one hardcoded repo (`calcom/cal.diy`) to any public GitHub repo, which touches the shared `ErrorCode` contract (`repo_not_allowed` removed — see below) and the frozen system-prompt text. Both are called out again in that work's own log entry.
+
+**Confirm before relying on this:** `.env`'s `ALLOWED_USER_EMAILS` was set to `jonathangaal@pursuit.org,ivaylo.nanev@pursuit.org` — the second address is inferred from Ivaylo's git commit author email, not confirmed as his actual Firebase/Google sign-in identity. Verify this before deploying; a wrong value locks out the only two legitimate users.
 - The stray `issuescout/` scaffold directory at the repo root is still untracked, unused leftover from before spec 001 relocated the real app to the project root — candidate for deletion, not yet acted on.

@@ -1,6 +1,6 @@
 # IssueScout
 
-IssueScout prepares a first-pass triage report for one GitHub issue so a maintainer can review it: a signed-in user with a verified email submits an issue URL, the backend fetches the issue and its comments, an LLM (run inside a bounded tool-calling harness) searches the same repository for related issues, and the app returns a report — summary, category, provisional priority, suggested labels, evidence, missing information, related issues, a recommended next step, and limitations. This build is **Phase 1 only**: read-only against GitHub, no writes of any kind. `proposedActions` is always `[]`, enforced by the harness regardless of what the model produces.
+IssueScout prepares a first-pass triage report for one GitHub issue so a maintainer can review it: a signed-in, allowlisted user submits an issue URL, the backend fetches the issue and its comments, an LLM (run inside a bounded tool-calling harness) searches the same repository for related issues, and the app returns a report — summary, category, provisional priority, suggested labels, evidence, missing information, related issues, a recommended next step, and limitations. This build is **Phase 1 only**: read-only against GitHub, no writes of any kind. `proposedActions` is always `[]`, enforced by the harness regardless of what the model produces.
 
 ## Running locally
 
@@ -71,7 +71,7 @@ Remaining environment/constant values in `lib/server/config.ts` are tagged `CONF
 
 ### Retention/deletion stance for quoted third-party GitHub text — open escalation, not resolved
 
-`reports.report` stores quoted third-party GitHub text (issue/comment excerpts) inside its evidence fields. **No retention or deletion stance has been decided for this data.** This is an explicitly open escalation — not something this README, or any part of this build, resolves by omission or by assumption. Public deployment must not happen until the project owners decide a retention/deletion policy for this stored third-party text. Until then, this gap stays visible here rather than being silently treated as settled.
+`reports.report` stores quoted third-party GitHub text (issue/comment excerpts) inside its evidence fields. **No retention or deletion stance has been decided for this data.** This is an explicitly open escalation — not something this README, or any part of this build, resolves by omission or by assumption. A deployment broader than the current closed allowlist (a handful of named maintainers) must not happen until the project owners decide a retention/deletion policy for this stored third-party text. Until then, this gap stays visible here rather than being silently treated as settled.
 
 ## Stack
 
@@ -89,6 +89,6 @@ Live database tests are opt-in and create/delete synthetic users and rows in a *
 
 Before frontend sign-off: apply both migrations to the test database, run the live tests, then verify real Firebase sign-in, one model-backed triage, saved-report retrieval, and rejection under the other user's session. Confirm read-token scope, provider/limits, and retention decisions. No migration has been applied to a cloud database by this repair.
 
-## Public registration decision — October 14, 2026
+## Public registration — reverted, October 15, 2026
 
-Ivaylo approved signup and login for everyone, superseding earlier pair-only allowlist requirements. `/signup` and `/signin` use Firebase Google authentication; first sign-in creates the account. The API verifies the token and verified email without an email allowlist. Report ownership, per-user limits, and read-only GitHub access remain enforced. Configure Firebase Google sign-in, authorized domains, browser configuration and server credentials before live testing. Public registration is implemented locally, not evidence of a deployed service or a resolved retention policy.
+Ivaylo's October 14, 2026 decision to open signup/login to everyone was reverted following this session's red-alert security audit (FAIL, critical — PRD §9 finding #1, TRD §5's two-check auth requirement had silently regressed). `/signup` and `/signin` still work via Firebase (Google or email/password); creating an account no longer implies API access. The backend now re-enforces `ALLOWED_USER_EMAILS` on top of a verified session, as originally specified. See `log.md` for the full decision record.
