@@ -72,7 +72,7 @@ describe("runHarness", () => {
     expect(result.errorCode).toBe("model_output_invalid");
   });
 
-  it("(a) a clean fixture run returns status: completed with coverage.stopReason === 'completed'", async () => {
+  it("(a) an unreviewed fixture is withheld while completed research remains recorded", async () => {
     const githubClient = createFakeGitHubClient();
     const modelProvider = createFakeModelProvider([
       { content: [{ type: "text", text: JSON.stringify(VALID_MODEL_REPORT_JSON) }], stopReason: "end_turn" },
@@ -85,7 +85,8 @@ describe("runHarness", () => {
 
     expect(result.status).toBe("completed");
     expect(result.report?.coverage.stopReason).toBe("completed");
-    expect(result.report?.summary).toBe(VALID_MODEL_REPORT_JSON.summary);
+    expect(result.report?.coverage.removedByValidation).toContain("claimReview:summary");
+    expect(result.report?.summary).toContain("could not be supported");
   });
 
   it("(b) a model that requests searches forever is stopped at MAX_MODEL_TURNS, returning a partial report, never undefined/throwing", async () => {
@@ -269,4 +270,38 @@ describe("runHarness", () => {
     expect(persistRun).toHaveBeenCalledTimes(1);
     expect(persistRun.mock.calls[0][0]).toMatchObject({ userId: "user-1", status: "completed" });
   });
+});
+
+it('owns coverage prose and counts distinct related issues rather than repeated primary reads', async () => {
+  const client = createFakeGitHubClient();
+  const originalRead = client.getIssue;
+  client.getIssue = async (n, signal) => { const value = await originalRead(n, signal); return 'notFound' in value ? value : {...value, url:`https://github.com/calcom/cal.diy/issues/${n}`}; };
+  const read = (number: number): ModelResponse => ({content:[{type:'tool_use',id:`read-${number}`,name:'github_issue_research',input:{operation:'read',issueNumber:number}}],stopReason:'tool_use'});
+  const provider=createFakeModelProvider([read(42),read(42),read(43),read(43),{content:[{type:'text',text:JSON.stringify({...VALID_MODEL_REPORT_JSON,limitations:['Five hundred searches and 99 candidates were read.']})}],stopReason:'end_turn'},{content:[{type:'text',text:'{"fields":[]}'}],stopReason:'end_turn'}]);
+  const result=await runHarness({issueUrl:APPROVED_ISSUE_URL,userId:'coverage-test'},{githubClient:client,modelProvider:provider,countRunsInLastHour:alwaysAllowedRateCheck});
+  expect(result.report?.coverage.candidatesRead).toBe(1);
+  expect(result.report?.coverage.searchesRun).toBe(0);
+  expect(result.report?.limitations.join(' ')).toContain('1 distinct related issues');
+  expect(result.report?.limitations.join(' ')).not.toMatch(/Five hundred|99 candidates/);
+});
+
+it('reserves time for drafting and review by removing tools after the research time budget', async () => {
+  let now = 1000;
+  const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
+  const requests: number[] = [];
+  let turn = 0;
+  const provider: ModelProvider = { complete: async request => {
+    requests.push(request.tools.length);
+    turn++;
+    if (turn === 1) {
+      now += 45000;
+      return {content:[{type:'tool_use',id:'search',name:'github_issue_research',input:{operation:'search',query:'crash'}}],stopReason:'tool_use'};
+    }
+    return {content:[{type:'text',text:turn === 2 ? JSON.stringify(VALID_MODEL_REPORT_JSON) : '{"fields":[]}'}],stopReason:'end_turn'};
+  }};
+  try {
+    const result = await runHarness({issueUrl:APPROVED_ISSUE_URL,userId:'budget-test'}, {githubClient:createFakeGitHubClient(),modelProvider:provider,countRunsInLastHour:alwaysAllowedRateCheck});
+    expect(requests).toEqual([1,0,0]);
+    expect(result.status).toBe('completed');
+  } finally { clock.mockRestore(); }
 });
