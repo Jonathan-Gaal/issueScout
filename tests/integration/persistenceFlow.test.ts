@@ -28,7 +28,7 @@ it("runs the real harness, saves the exact report, then retrieves it by returned
   const created = await response.json();
   expect(created.runId).toBe("saved-run");
   expect(state.outcome?.report).toEqual(created.report);
-  expect(state.outcome?.modelTurnsUsed).toBe(1);
+  expect(state.outcome?.modelTurnsUsed).toBe(2);
   const { GET } = await import("../../app/api/runs/[id]/route");
   const loaded = await GET(new Request("https://test.example/api/runs/saved-run", { headers: { origin: "https://test.example" } }), { params: Promise.resolve({ id: created.runId }) });
   expect(loaded.status).toBe(200);
