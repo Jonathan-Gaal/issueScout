@@ -172,3 +172,39 @@
 .editorial.motion-on :is(.studio-copy,.studio-info,.workspace-page-heading,.signin-layout,.report-view,.history-report-card,.auth-journey>div){animation-name:readable-enter}
 @keyframes readable-enter{from{transform:translateY(8px)}to{transform:translateY(0)}}
 @media(max-width:760px){.editorial .workspace-main{padding:26px 20px 36px}.editorial .workspace-page-heading h1{font-size:32px;line-height:1.15;letter-spacing:-1px}.editorial .workspace-topbar{gap:12px}.editorial .report-toolbar{flex-wrap:wrap}.editorial .report-toolbar .workspace-button{font-size:12px;padding:10px 16px}.editorial .studio-actions{gap:10px}.editorial .studio-actions .studio-button{padding:12px 19px}.editorial .workspace-footer{gap:12px 20px}.editorial .history-heading{gap:14px}}
+
+/* Email authentication matches the gold glass account panels. */
+.auth-email-form { display: grid; gap: 12px; margin: 26px 0 0; }
+.auth-email-form label { color: #f0e7d3; font-size: .9rem; font-weight: 600; }
+.auth-email-form input { width: 100%; min-width: 0; box-sizing: border-box; padding: 16px 18px; border: 1px solid rgba(224,198,139,.4); border-radius: 14px; background: rgba(255,255,255,.07); color: #fff; font: inherit; }
+.auth-email-form input::placeholder { color: #aeb9c6; }
+.auth-email-form input:focus-visible { outline: 2px solid #e0c68b; outline-offset: 3px; }
+.auth-email-form .workspace-button { margin-top: 8px; }
+.auth-panel .auth-text-button { background: transparent; border: 0; color: #e0c68b; text-decoration: underline; text-underline-offset: 4px; padding: 12px 0; font: inherit; cursor: pointer; }
+.auth-panel .auth-text-button:disabled { opacity: .55; cursor: wait; }
+.auth-panel .auth-notice { color: #f2dfb5; padding: 16px; border: 1px solid rgba(224,198,139,.4); border-radius: 14px; background: rgba(224,198,139,.09); }
+
+/* Make the sample's primary action easy to find. */
+.editorial .sample-start-card .sample-report-cta {
+ width: 100%; box-sizing: border-box; display: flex; justify-content: center;
+ min-height: 58px; padding: 16px 24px; margin-top: 6px;
+ background: linear-gradient(120deg,#f0dca6,#d4ac5c);
+ color: #302512; border: 1px solid #b58a38; border-radius: 16px;
+ font-size: 17px; font-weight: 750; text-decoration: none;
+ box-shadow: 0 7px 22px rgba(153,113,32,.22), inset 0 1px rgba(255,255,255,.65);
+}
+.editorial .sample-start-card .sample-report-cta:hover { background: linear-gradient(120deg,#f6e5ba,#dfba71); border-color: #8d651d; }
+.editorial .sample-start-card .sample-report-cta:focus-visible { outline: 3px solid #76551d; outline-offset: 4px; }
+
+/* Match both entry-point actions, even when their cards differ in width. */
+.editorial .submission-grid .submission-card form > .workspace-button,
+.editorial .submission-grid .sample-start-card .sample-report-cta {
+ display: flex; align-items: center; justify-content: center;
+ width: 100%; max-width: 300px; min-height: 48px;
+ box-sizing: border-box; padding: 12px 20px;
+ font-size: 15px; line-height: 22px; font-weight: 750;
+ border-radius: 14px; margin-left: auto; margin-right: auto;
+}
+
+.editorial .workspace-topbar .workspace-signout { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 20px; border:1px solid #b58b40; border-radius:12px; background:linear-gradient(120deg,#eddaaa,#d0ab62); color:#352a16; font:inherit; font-weight:650; cursor:pointer; white-space:nowrap; }
+.editorial .workspace-topbar .workspace-signout:disabled { opacity:.65; cursor:wait; }

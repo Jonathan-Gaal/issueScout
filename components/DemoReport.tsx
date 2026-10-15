@@ -20,5 +20,5 @@ export default function DemoReport() {
       <div className="partial-user-action"><span className="outcome-mini-label">WHAT YOU SHOULD DO</span><h3>{partial ? "Check what is missing." : "Verify before taking action."}</h3><p>{partial ? "Verify timezone details and check related issues before deciding this is new or a duplicate." : "Verify the evidence and timezone details before deciding the cause or urgency."}</p><a href="#report-assessment">Review the {partial ? "partial" : "complete"} report above</a></div>
       <p className="outcome-footnote">Switching examples updates the report above. No AI request is made, and no GitHub issue is changed.</p>
     </div>
-    </details><div className="report-toolbar"><Link href="/demo/history">Sample history</Link><Link href="/signup" className="workspace-button">Create your own report</Link></div></>;
+    </details><div className="report-toolbar"><Link href="/demo/history">Sample history</Link></div></>;
 }

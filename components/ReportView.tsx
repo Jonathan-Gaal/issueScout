@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { Report, StopReason } from "../lib/contract";
 import "./report-view.css";
+import ReportMotion from "./ReportMotion";
+import AnimatedSummary from "./AnimatedSummary";
 
 const stopLabels: Record<StopReason, string> = {
   completed: "Research completed",
@@ -10,6 +12,14 @@ const stopLabels: Record<StopReason, string> = {
   time_limit: "Time limit reached",
   tool_failure: "A research tool failed",
 };
+
+function UrgencyBar({ priority }: { priority: Report["priority"] }) {
+  const level = priority === "high" ? 3 : priority === "medium" ? 2 : priority === "low" ? 1 : 0;
+  return <div className={`urgency-meter urgency-${priority}`} aria-label={level ? `Provisional urgency: ${priority}. Ordinal scale, not a numerical score.` : priority === "needs_review" ? "Urgency undetermined: more evidence needed." : "Urgency not assigned."}>
+    <div className="urgency-segments" aria-hidden="true">{["Low", "Medium", "High"].map((label, index) => <div className={`urgency-segment ${index < level ? "is-active" : ""}`} key={label}><div className="urgency-track"><span /></div><span className="urgency-label">{label}</span></div>)}</div>
+    {!level && <span className="urgency-pending"><span aria-hidden="true" />{priority === "needs_review" ? "Awaiting evidence · urgency not yet rated" : "Not assigned · maintainer review"}</span>}
+  </div>;
+}
 
 function GitHubLink({ url, children }: { url: string; children: ReactNode }) {
   let safe = false;
@@ -27,7 +37,7 @@ function Section({ title, children, accent = false, step, id }: { title: string;
 export default function ReportView({ report, sample = false, comparison, illustration }: { report: Report; sample?: boolean; illustration?: ReactNode; comparison?: { before: string; after: string; beforeLabel: string; afterLabel: string; caption: string } }) {
   const partial = report.coverage.stopReason !== "completed";
   const readAt = new Date(report.issue.retrievedAt);
-  return <article className={`report-view clear-report${sample ? " sample-report" : ""}${illustration ? " investigation-board" : ""}`} aria-label={sample ? "Sample issue report" : "Issue report"}>
+  return <ReportMotion><article className={`report-view clear-report${sample ? " sample-report" : ""}${illustration ? " investigation-board" : ""}`} aria-label={sample ? "Sample issue report" : "Issue report"}>
 
     {partial && <div className="rv-notice" role="status"><strong>{stopLabels[report.coverage.stopReason]}</strong><p>Research stopped before completion. Review the limitations and coverage before relying on these findings.</p></div>}
     <div className="research-pass" id="report-assessment" tabIndex={-1}>
@@ -42,11 +52,11 @@ export default function ReportView({ report, sample = false, comparison, illustr
       <h2 className="clear-section-title"><span>02</span> IssueScout’s assessment</h2>
       <p className="assessment-provenance">{sample ? "Prepared sample assessment" : "AI assessment · verify against the sources"}</p>
       <div className="finding-stack">
-        <section className="finding finding-type"><span className="finding-icon" aria-hidden="true">≠</span><div><span className="finding-label">What kind of issue?</span><h3>{report.category.replaceAll("_", " ")}</h3><details><summary>Why this classification?</summary><p>{report.categoryReason}</p></details></div></section>
-        <section className="finding finding-priority"><span className="finding-icon" aria-hidden="true">!</span><div><span className="finding-label">How urgent is it?</span><h3>{report.priority === "needs_review" ? "Urgency needs review" : report.priority.replaceAll("_", " ")}</h3><p>{sample ? "A customer could arrive at the wrong time. The number affected is unknown." : report.priorityEvidence || "Impact has not been established."}</p>{sample && <details><summary>See priority reasoning</summary><p>{report.priorityEvidence || "Review the source before assigning urgency."}</p></details>}</div></section>
-        <section className="finding finding-unknown"><span className="finding-icon" aria-hidden="true">?</span><div><span className="finding-label">What is still uncertain?</span><h3>{sample ? "Cause not confirmed" : "Check before deciding"}</h3><p>{sample ? "Timezone differences are a possibility—not a verified cause." : report.priorityUncertainty || "No uncertainty was recorded. This does not guarantee the assessment is complete."}</p>{sample && <details><summary>What remains unknown?</summary><p>{report.priorityUncertainty}</p></details>}</div></section>
+        <section className="finding finding-type"><span className="finding-icon" aria-hidden="true">≠</span><div><span className="finding-label">What kind of issue?</span><h3>{report.category.replaceAll("_", " ")}</h3><details><summary>Why this classification?</summary><AnimatedSummary text={report.categoryReason} /></details></div></section>
+        <section className="finding finding-priority"><span className="finding-icon" aria-hidden="true">!</span><div><span className="finding-label">How urgent is it?</span><h3>{report.priority === "needs_review" ? "Urgency needs review" : report.priority.replaceAll("_", " ")}</h3><UrgencyBar priority={report.priority} /><AnimatedSummary key={report.priorityEvidence} text={sample ? "A customer could arrive at the wrong time. The number affected is unknown." : report.priorityEvidence || "Impact has not been established."} />{sample && <details><summary>See priority reasoning</summary><AnimatedSummary text={report.priorityEvidence || "Review the source before assigning urgency."} /></details>}</div></section>
+        <section className="finding finding-unknown"><span className="finding-icon" aria-hidden="true">?</span><div><span className="finding-label">What is still uncertain?</span><h3>{sample ? "Cause not confirmed" : "Check before deciding"}</h3><AnimatedSummary text={sample ? "Timezone differences are a possibility—not a verified cause." : report.priorityUncertainty || "No uncertainty was recorded. This does not guarantee the assessment is complete."} />{sample && <details><summary>What remains unknown?</summary><AnimatedSummary text={report.priorityUncertainty} /></details>}</div></section>
       </div>
-      <details className="assessment-labels"><summary>Suggested labels <span>{report.suggestedLabels.length}</span></summary><p className="assessment-provenance">Suggestions only. No labels have been applied.</p>{report.suggestedLabels.length ? report.suggestedLabels.map((label,index)=><div className="assessment-label-reason" key={`${label.name}-${index}`}><code>{label.name}</code><p>{label.reason}</p></div>) : <p>None suggested.</p>}</details>
+      <details className="assessment-labels"><summary>Suggested labels <span>{report.suggestedLabels.length}</span></summary><p className="assessment-provenance">Suggestions only. No labels have been applied.</p>{report.suggestedLabels.length ? report.suggestedLabels.map((label,index)=><div className="assessment-label-reason" key={`${label.name}-${index}`}><code>{label.name}</code><AnimatedSummary text={label.reason} /></div>) : <AnimatedSummary text="None suggested." />}</details>
       </div></div>
     <Section id="report-next-step" title="Your next step" step="03" accent>
       <p className="next-step-intro">{sample ? "Confirm the timezone details before deciding which time is wrong." : report.recommendedNextStep || "Review the available evidence and research limitations before deciding what to do next."}</p>
@@ -67,7 +77,7 @@ export default function ReportView({ report, sample = false, comparison, illustr
         <section id="report-evidence" className="evidence-panel" aria-labelledby="evidence-title"><header><span className="research-symbol" aria-hidden="true">“</span><div><span className="research-eyebrow">SOURCE OBSERVATIONS</span><h3 id="evidence-title">What the report is based on</h3></div></header>
         {report.evidence.length ? <ol className="evidence-card-list">{report.evidence.map((evidence,index)=><li key={index}><span className="evidence-number">Observation {index+1}</span><p>{evidence.observation}</p>{sample ? <span className="evidence-source-note">Prepared sample text · no live source</span> : <GitHubLink url={evidence.sourceUrl}>Read source on GitHub</GitHubLink>}</li>)}</ol> : <p className="research-warning">No supporting observations were included. Check the original issue before relying on the assessment.</p>}</section>
         <section className="evidence-panel related-panel" aria-labelledby="related-title"><header><span className="research-symbol" aria-hidden="true">≈</span><div><span className="research-eyebrow">RELATED REPORTS</span><h3 id="related-title">What else looks similar?</h3></div></header>
-        {report.relatedIssues.length ? report.relatedIssues.map((issue,index)=><article className="related-evidence-card" key={`${issue.number}-${index}`}><span className="rv-tag">{issue.assessment.replaceAll("_"," ")}</span><h4><GitHubLink url={issue.url}>#{issue.number} · {issue.title}</GitHubLink></h4><dl><dt>What matches</dt><dd>{issue.similarities}</dd><dt>What differs</dt><dd>{issue.differences}</dd></dl></article>) : <><div className="related-empty-count"><strong>0</strong><span>related issues included</span></div><p>No comparison is presented in this report.</p><p className="research-warning">This does not mean no related issues exist. Only a limited set was checked.</p></>}
+        {report.relatedIssues.length ? report.relatedIssues.map((issue,index)=><article className="related-evidence-card" key={`${issue.number}-${index}`}><span className="rv-tag">{issue.assessment.replaceAll("_"," ")}</span><h4><GitHubLink url={issue.url}>#{issue.number} · {issue.title}</GitHubLink></h4><dl><dt>What matches</dt><dd><p>{issue.similarities}</p></dd><dt>What differs</dt><dd><p>{issue.differences}</p></dd></dl></article>) : <><div className="related-empty-count"><strong>0</strong><span>related issues included</span></div><p>No comparison is presented in this report.</p><p className="research-warning">This does not mean no related issues exist. Only a limited set was checked.</p></>}
         </section>
       </div>
       <section className="research-scope" id="report-coverage" aria-labelledby="coverage-title"><header><div><span className="research-eyebrow">{sample ? "ILLUSTRATIVE ACTIVITY" : "SYSTEM-RECORDED ACTIVITY"}</span><h3 id="coverage-title">How much was checked?</h3></div><span className={`scope-status${partial ? " scope-partial" : ""}`}>{stopLabels[report.coverage.stopReason]}</span></header>
@@ -80,5 +90,5 @@ export default function ReportView({ report, sample = false, comparison, illustr
       {report.coverage.removedByValidation.length > 0 && <details><summary>Items removed during validation ({report.coverage.removedByValidation.length})</summary><ul>{report.coverage.removedByValidation.map((item,index)=><li key={index}><p>{item}</p></li>)}</ul></details>}
       </section>
     </details>
-  </article>;
+  </article></ReportMotion>;
 }
