@@ -18,10 +18,6 @@ const ERROR_DESCRIPTORS = {
     status: 400,
     message: "That does not look like a GitHub issue URL. Please check the link and try again.",
   },
-  repo_not_allowed: {
-    status: 400,
-    message: "This tool only triages issues in the approved repository.",
-  },
   is_pull_request: {
     status: 400,
     message: "That link points to a pull request, not an issue. Please provide an issue URL.",

@@ -34,6 +34,7 @@ interface GroqChatCompletionResponse {
     message: GroqChoiceMessage;
     finish_reason: string;
   }>;
+  usage?: { prompt_tokens: number; completion_tokens: number };
 }
 
 function toGroqTool(toolDefinition: ToolDefinition): Record<string, unknown> {
@@ -141,6 +142,8 @@ export class GroqProvider implements ModelProvider {
     return {
       content: normalizeGroqMessage(firstChoice.message),
       stopReason: toGroqStopReason(firstChoice.finish_reason),
+      inputTokens: parsedResponse.usage?.prompt_tokens,
+      outputTokens: parsedResponse.usage?.completion_tokens,
     };
   }
 }

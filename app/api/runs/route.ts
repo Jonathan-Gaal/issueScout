@@ -12,7 +12,7 @@ export { handlePreflight as OPTIONS } from "../../../lib/server/cors";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buildApiErrorBody, getErrorStatus } from "../../../lib/server/errors";
-import { verifySession } from "../../../lib/server/auth";
+import { verifySession, isAllowlisted } from "../../../lib/server/auth";
 import { buildCorsHeaders, buildCorsRejectedResponse, checkCorsOrigin } from "../../../lib/server/cors";
 import { runs } from "../../../lib/server/db/runs";
 import { runHarness } from "../../../lib/server/harness/runHarness";
@@ -37,6 +37,12 @@ export async function POST(req: Request): Promise<Response> {
       headers: corsHeaders,
     });
   }
+  if (!isAllowlisted(identity.email)) {
+    return NextResponse.json(buildApiErrorBody("unauthorized"), {
+      status: getErrorStatus("unauthorized"),
+      headers: corsHeaders,
+    });
+  }
 
   let requestBody: unknown;
   try {
@@ -56,38 +62,51 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
 
-  const parsedUrl = parseIssueUrl(parsedBody.data.issueUrl, config.approvedRepo);
+  const parsedUrl = parseIssueUrl(parsedBody.data.issueUrl);
   if (!parsedUrl.ok) return NextResponse.json(buildApiErrorBody(parsedUrl.code), { status: getErrorStatus(parsedUrl.code), headers: corsHeaders });
+  // The structurally-validated, regex-captured owner/repo — never the
+  // model's or the raw request body's free text — is what this run is
+  // permanently bound to from here on.
+  const repo = `${parsedUrl.value.owner}/${parsedUrl.value.repo}`;
   // Store a canonical URL, not arbitrary query parameters/fragments supplied by the caller.
-  const issueUrl = `https://github.com/${config.approvedRepo}/issues/${parsedUrl.value.number}`;
+  const issueUrl = `https://github.com/${repo}/issues/${parsedUrl.value.number}`;
   let runId: string | undefined;
   const startedAt = Date.now();
   try {
+    // Must be checked before admit() reserves this run's own row, or it
+    // would always see itself and report "has run before" incorrectly.
+    const isFirstRun = (await runs.hasRunBefore(identity.uid)) === false;
     const run = await runs.admit({ userId: identity.uid, issueUrl }, config.runsPerUserPerHour);
     if (!run) return NextResponse.json(buildApiErrorBody("run_rate_limited"), { status: getErrorStatus("run_rate_limited"), headers: corsHeaders });
     runId = run.id;
     logRunEvent(runId, "run_started");
+    if (isFirstRun) logRunEvent(runId, "user_first_run");
     const harnessResult = await runHarness({ issueUrl, userId: identity.uid }, {
-      githubClient: new RestGitHubClient(), modelProvider: getModelProvider(),
+      githubClient: new RestGitHubClient(repo), modelProvider: getModelProvider(),
       // Admission has already atomically reserved this run against the limit.
       countRunsInLastHour: async () => 0,
       persistRun: async outcome => {
         for (const call of outcome.toolCalls) logRunEvent(run.id, "tool_call", { operation: call.operation, outcome: call.outcome });
-        await runs.finish(run.id, identity.uid, config.approvedRepo, outcome, Date.now() - startedAt);
+        await runs.finish(run.id, identity.uid, repo, outcome, Date.now() - startedAt);
       },
     });
-    logRunEvent(runId, `run_${harnessResult.status}`, { durationMs: Date.now() - startedAt, errorCode: harnessResult.errorCode });
+    logRunEvent(runId, `run_${harnessResult.status}`, {
+      durationMs: Date.now() - startedAt,
+      errorCode: harnessResult.errorCode,
+      inputTokens: harnessResult.inputTokensUsed,
+      outputTokens: harnessResult.outputTokensUsed,
+    });
     if (harnessResult.status === "failed") {
       const code = harnessResult.errorCode ?? "github_error";
       if (code === "write_failed") {
-        try { await runs.finish(run.id, identity.uid, config.approvedRepo, { status: "failed", errorCode: code, toolCalls: [] }, Date.now() - startedAt); } catch { /* Do not return a false success. */ }
+        try { await runs.finish(run.id, identity.uid, repo, { status: "failed", errorCode: code, toolCalls: [] }, Date.now() - startedAt); } catch { /* Do not return a false success. */ }
       }
       return NextResponse.json(buildApiErrorBody(code), { status: getErrorStatus(code), headers: corsHeaders });
     }
     return NextResponse.json({ runId, status: harnessResult.status, report: harnessResult.report }, { status: 200, headers: corsHeaders });
   } catch {
     if (runId) {
-      try { await runs.finish(runId, identity.uid, config.approvedRepo, { status: "failed", errorCode: "write_failed", toolCalls: [] }, Date.now() - startedAt); } catch { /* Database unavailable: never claim persistence succeeded. */ }
+      try { await runs.finish(runId, identity.uid, repo, { status: "failed", errorCode: "write_failed", toolCalls: [] }, Date.now() - startedAt); } catch { /* Database unavailable: never claim persistence succeeded. */ }
       logRunEvent(runId, "run_failed", { errorCode: "write_failed" });
     }
     return NextResponse.json(buildApiErrorBody("write_failed"), { status: getErrorStatus("write_failed"), headers: corsHeaders });
@@ -103,6 +122,12 @@ export async function GET(req: Request): Promise<Response> {
 
   const identity = await verifySession(req);
   if (!identity) {
+    return NextResponse.json(buildApiErrorBody("unauthorized"), {
+      status: getErrorStatus("unauthorized"),
+      headers: corsHeaders,
+    });
+  }
+  if (!isAllowlisted(identity.email)) {
     return NextResponse.json(buildApiErrorBody("unauthorized"), {
       status: getErrorStatus("unauthorized"),
       headers: corsHeaders,

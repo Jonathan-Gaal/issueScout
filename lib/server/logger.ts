@@ -5,14 +5,15 @@
 // the issue body" is a compile error at the call site, not a runtime
 // filtering decision (TRD §4).
 
-/** Matches PRD §9's "Key events to log" list exactly. */
+/** Matches PRD §9's "Key events to log" list, plus user_first_run (added this session for shared-credential-exposure observability). */
 export type RunLogEvent =
   | "run_started"
   | "run_completed"
   | "run_stopped"
   | "run_failed"
   | "tool_call"
-  | "validation_removal";
+  | "validation_removal"
+  | "user_first_run";
 
 /** Short, enum-shaped string codes — never free text. */
 export type LogStopReasonCode =
@@ -45,6 +46,8 @@ export interface LogMeta {
   operation?: LogOperationCode;
   /** The name of what a validation-removal event stripped (a label name or issue number as a short identifier) — never the underlying free-text content. */
   removedIdentifier?: string;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 /**

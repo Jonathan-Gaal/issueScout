@@ -135,3 +135,39 @@ No production deploy performed — that stays an explicit separate human step pe
 - D9 (auth provider) still pending Ivaylo's explicit sign-off — PRD §12 Definition of Done not yet met on this point.
 - Retention/deletion stance for quoted third-party GitHub text (PRD §9 finding #6) — unresolved product escalation.
 - The stray `issuescout/` scaffold directory at the repo root is still untracked, unused leftover from before spec 001 relocated the real app to the project root — candidate for deletion, not yet acted on.
+
+---
+
+## 2026-10-15 — Red-Alert + Soundwave (re-dispatched) + Jonathan (joint-ownership fixes)
+
+### [DECISION] Oct 14 public-signup change reverted — PRD §9 finding #1 had silently regressed
+
+Commit `acf9ebf` ("Enable public Google signup and preserve private report ownership", Ivaylo, Oct 14) deleted `isAllowlisted()` from `lib/server/auth.ts` and `config.allowedUserEmails`, removing the second half of the two-check auth gate this log's 2026-10-08 entry above had explicitly marked **CONFIRMED closed**. Re-dispatching Red-Alert Mode 2 and Soundwave against the current codebase (not a fresh audit — a targeted re-check of exactly this finding, same methodology as the original close-out) found:
+
+- **Red-Alert: FAIL, critical.** Any Firebase-verified identity — Google or, after the later email/password commit, email+password — could call `/api/runs`, not just the allowlisted pair. `app/api/runs/route.ts`'s own header comment ("two-check auth") had gone stale and no longer matched the code beneath it.
+- **Soundwave: data confidentiality intact, cost/credential exposure real.** `db.runs`'s ownership-scoped queries meant a new signup could never read another user's existing reports — the "preserve private report ownership" half of the Oct 14 commit's own stated intent held up. But every new signup got its own fresh `runsPerUserPerHour` allowance against the shared `ANTHROPIC_API_KEY`/`GITHUB_READ_TOKEN`, with zero logging of signups or token spend to detect it (closed separately, see the observability work below).
+
+**Action taken, under Jonathan and Ivaylo's joint ownership of this project, logged here rather than silently overwritten:**
+- Restored `isAllowlisted()`/`config.allowedUserEmails` and the two call sites (`lib/server/auth.ts`, both `app/api/runs/route.ts` handlers, `app/api/runs/[id]/route.ts`).
+- Reverted the misleading UI copy the Oct 14 commit introduced: `AccessGate.tsx`'s "Anyone can create an account with Google" and `SignIn.tsx`'s "No invitation needed" badge, both of which now claim open access that no longer exists. The email/password signup flow itself (added later, on top of the Oct 14 decision) was **kept** — it's a legitimate sign-in method orthogonal to allowlist gating, not something this revert needed to remove; a non-allowlisted signup still correctly lands on `/not-authorized` via the existing `isAccessError` redirect in `AccessGate.tsx`'s `VerifiedAccess`.
+- Reverted `README.md`'s intro line and retention-stance paragraph to allowlist-aware wording, and replaced the "Public registration decision" section with this entry's pointer rather than deleting it outright.
+- Reverted `FRONTEND-HANDOFF.md`'s three touched spots (env setup step 4, day-1 test plan, "not yet verified" section).
+- Added `WITH CHECK` to the `runs_update_own` RLS policy (new migration `20261015193012_runs_update_with_check.sql`) — Red-Alert flagged the missing clause separately; low severity today since only `service_role` writes, but closed as defense-in-depth. **Must still be applied manually via the Supabase SQL editor against the live instance — no CLI/DB credentials were available in this session to apply it directly.**
+
+**Not done here, explicitly flagged for Ivaylo:** this session separately broadened repo scope from one hardcoded repo (`calcom/cal.diy`) to any public GitHub repo, which touches the shared `ErrorCode` contract (`repo_not_allowed` removed — see below) and the frozen system-prompt text. Both are called out again in that work's own log entry.
+
+**Confirm before relying on this:** `.env`'s `ALLOWED_USER_EMAILS` was set to `jonathangaal@pursuit.org,ivaylo.nanev@pursuit.org` — the second address is inferred from Ivaylo's git commit author email, not confirmed as his actual Firebase/Google sign-in identity. Verify this before deploying; a wrong value locks out the only two legitimate users.
+
+---
+
+### [DECISION] Repo scope broadened from one hardcoded repo to any public GitHub repo
+
+Done together with the allowlist restoration above, since Red-Alert's finding #3 was explicit that this must not ship while the allowlist regression was open — closing that is what unblocked this.
+
+`parseIssueUrl` no longer takes an `approvedRepo` parameter; `RestGitHubClient` now binds its repo once at construction, from the validated input URL, rather than reading a single global `config.approvedRepo`. `config.approvedRepo`/`APPROVED_REPO` and the `repo_not_allowed` error code are deleted entirely — every backend reader updated. The frozen system prompt's step 1 ("...in the approved repository") is reworded to "...for a public GitHub repository"; `tests/fixtures/frozen-system-prompt.txt` updated to match byte-for-byte, per that file's own dual-owner-sign-off requirement — done under the same joint-ownership authorization as the copy revert above, not silently.
+
+**Touches Ivaylo's files in two places, both minimal and flagged:** `lib/client/api.ts`'s exhaustive `isAccessError` switch had a `case "repo_not_allowed":` that TypeScript's `satisfies`-style exhaustiveness check forced to be removed once the type no longer exists — left everything else in that file untouched. `components/*`/`lib/client/config.ts` still reference `clientConfig.approvedRepo` for display copy ("Currently supports calcom/cal.diy") — **not touched here**, since it's cosmetic (the backend no longer enforces that restriction, so the copy is just stale, not functionally wrong) and squarely Ivaylo's slice; flagged for him to clean up when his branch starts.
+
+**Manually verified, not just unit-tested:** ran a full live triage against a second, different repo (`react/react#37837` — real open issue, not part of any fixture) end-to-end — correct repo-scoped GitHub search, correct report, `status: completed`. Re-ran the original `calcom/cal.diy#30264` case afterward to confirm no regression; also passed.
+
+**Not done here — manual, credential-handling action for Jonathan:** the live `GITHUB_READ_TOKEN` was separately found (this session) to already read `facebook/react` successfully, meaning its real GitHub-side scope already exceeded the old single-repo design before this change. For "any public repo" to be the intentional, reviewed boundary rather than an accident of an over-scoped credential, regenerate it as a fine-grained PAT scoped to "Public Repositories (read-only)" (GitHub → Settings → Developer settings → Fine-grained tokens) and replace the deployment's `GITHUB_READ_TOKEN`. Nothing in this change depends on that token's exact scope — the app-layer gate against overbroad targets no longer exists by design — so this is purely about making the credential match the now-intended boundary, not a blocker for the code itself.

@@ -1,8 +1,8 @@
 # IssueScout
 
-IssueScout is a read-only AI research assistant for **software maintainers and engineering teams in the software industry**. Give it a GitHub issue URL, and it produces a report explaining the reported problem, suggested labels and priority, potentially related issues, missing information, and a recommended next step.
+IssueScout is a read-only AI research assistant for **software maintainers and engineering teams in the software industry**. A signed-in, allowlisted user submits a GitHub issue URL from any public repository, and the app returns a report explaining the reported problem, suggested labels and priority, potentially related issues, missing information, and a recommended next step. This build is **Phase 1 only**: read-only against GitHub, no writes of any kind. `proposedActions` is always `[]`, enforced by the harness regardless of what the model produces.
 
-It helps the person responsible for an issue tracker decide what to investigate next. The report distinguishes reporter and commenter claims from what IssueScout actually checked. The current build supports **calcom/cal.diy** only. It does not fix bugs or change anything on GitHub.
+It helps the person responsible for an issue tracker decide what to investigate next. The report distinguishes reporter and commenter claims from what IssueScout actually checked. It does not fix bugs or change anything on GitHub.
 
 ## What the agent does
 
@@ -37,15 +37,14 @@ Use `.env.example` as the variable reference. The primary tested model path is A
 
 | Variable | What to provide |
 | --- | --- |
-| `APPROVED_REPO` | `calcom/cal.diy` |
-| `NEXT_PUBLIC_APPROVED_REPO` | `calcom/cal.diy` (display hint; backend restriction remains authoritative) |
 | `MODEL_PROVIDER` | `anthropic` |
 | `ANTHROPIC_API_KEY` | Your privately supplied model API key |
 | `ANTHROPIC_MODEL` | A model available to your account; the current configured default is `claude-sonnet-4-5` |
-| `GITHUB_READ_TOKEN` | Your own token with public repository read access and no write permissions |
+| `GITHUB_READ_TOKEN` | Your own fine-grained PAT scoped to "Public Repositories (read-only)" — no write permissions, never scoped to private repos |
 | `SUPABASE_URL` | URL of the team's configured database project |
 | `SUPABASE_SERVICE_ROLE_KEY` | Private server-only service-role key, supplied securely by the project owner |
 | `AUTH_PROVIDER` | `firebase` |
+| `ALLOWED_USER_EMAILS` | Comma-separated allowlist of signed-in emails permitted to call the API; see "Set up Firebase" below |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Public Firebase web-app API key |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase web-app auth domain |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID; team project: `issuescout-c2238` |
@@ -55,13 +54,13 @@ Use `.env.example` as the variable reference. The primary tested model path is A
 
 If using `http://127.0.0.1:3015`, include that exact origin in `CORS_ALLOWED_ORIGINS`. Multiple origins are comma-separated; do not use a wildcard. Frontend API calls remain same-origin relative paths such as `/api/runs`.
 
-The GitHub client can read public data without a token, but is then subject to GitHub's unauthenticated limits. Remove an unused token variable rather than sending the template's placeholder. Public-repository token access does not itself enforce IssueScout's single-repository boundary; the tool layer must enforce that boundary too.
+The GitHub client can read public data without a token, but is then subject to GitHub's unauthenticated limits. Remove an unused token variable rather than sending the template's placeholder. The repository to query is resolved once per run from the submitted issue URL itself — there is no separately configured "approved repo"; every subsequent GitHub call for that run is bound to that same repository and rejects any response that doesn't match it.
 
 Groq is an alternative through `MODEL_PROVIDER=groq`, `GROQ_API_KEY`, and `GROQ_MODEL`. It is not the path used for the recorded Anthropic report. Model availability and provider limits must be checked before deployment.
 
 ### 3. Set up Firebase browser and server authentication
 
-Public registration is enabled in the application; there is **no email allowlist**. Enable Google and Email/Password providers in the same Firebase project if offering both login options. Authorize the development hostname in Firebase Authentication. Email/password users must verify their email before accessing research.
+Access is allowlist-gated: Firebase sign-in (Google or email/password) establishes identity, but the backend separately checks the signed-in email against `ALLOWED_USER_EMAILS` before serving any API request — these are two distinct, independently enforced checks, not one combined guard. Creating a Firebase account does **not** by itself grant API access. Enable Google and Email/Password providers in the same Firebase project if offering both login options. Authorize the development hostname in Firebase Authentication. Email/password users must verify their email before accessing research.
 
 The public `NEXT_PUBLIC_FIREBASE_*` values configure browser sign-in. They are **not Firebase Admin credentials**.
 
@@ -77,7 +76,7 @@ Never prefix this variable or private keys with `NEXT_PUBLIC_`. Do not paste the
 
 `firebase login` and `gcloud auth login` authenticate their respective command-line tools; they do not configure this backend's credentials. User-based Application Default Credentials have additional Firebase Authentication requirements and should not be assumed interchangeable with the service-account setup. See [Firebase Admin setup](https://firebase.google.com/docs/admin/setup).
 
-If Google account selection succeeds but the app rejects access, check Admin credentials, project consistency, email verification, and the exact allowed origin. Do not disable token verification or revocation checks to make login appear to work.
+If Google account selection succeeds but the app rejects access, check Admin credentials, project consistency, email verification, the exact allowed origin, and whether the signed-in email is actually present in `ALLOWED_USER_EMAILS`. Do not disable token verification, revocation checks, or the allowlist check to make login appear to work.
 
 ### 4. Prepare the database
 
@@ -98,12 +97,13 @@ Open the URL printed in the terminal and ensure its origin matches `CORS_ALLOWED
 
 Test the full journey:
 
-1. Sign in with a verified account.
-2. Submit `https://github.com/calcom/cal.diy/issues/30264`.
+1. Sign in with a verified, allowlisted account.
+2. Submit a real public issue URL, e.g. `https://github.com/calcom/cal.diy/issues/30264` (any public repo works — it is not limited to this one).
 3. Wait for a newly generated report and inspect its evidence and limitations.
 4. Open history and reopen that saved report.
 5. Sign out; verify protected routes require sign-in again.
 6. With a separate test account, confirm the first account's report is inaccessible.
+7. With a signed-in account that is **not** on the allowlist, confirm the API rejects the request (`401`) even though sign-in itself succeeded.
 
 A successful saved-preview page alone does not verify this journey. New research makes model API calls and may incur provider charges.
 
@@ -117,10 +117,10 @@ npm run lint
 
 `npm test` includes the ordinary tests and readiness audits. `npm run type-check` generates Next.js route types before TypeScript checking.
 
-As of **October 15, 2026**, the PR #7 revision passed 166 ordinary tests and 14 audit tests, with three tests skipped. TypeScript and lint for changed files passed. These are recorded results, not a guarantee of future runs.
+As of **October 15, 2026**, after the allowlist restore, RLS hardening, any-public-repo broadening, and evidence-grounded claim review, the suite passed 178 ordinary tests and 14 audit tests, with three tests skipped. TypeScript passed clean. These are recorded results, not a guarantee of future runs.
 
-- **Live research:** successful direct-harness runs used real GitHub data and Anthropic for #30264. Attribution was tightened after an overclaim was observed. The final effort-label guard was tested and replayed against saved output without another model call.
-- **Access boundary:** an outside-repository request was rejected with zero GitHub and model calls in the checked harness path.
+- **Live research:** successful direct-harness runs used real GitHub data and Anthropic for #30264, and separately against a second, different public repository to confirm the repo is not hardcoded. Attribution was tightened after an overclaim was observed. The final effort-label guard was tested and replayed against saved output without another model call.
+- **Access boundary:** a signed-in but non-allowlisted account is rejected with zero GitHub and model calls in the checked harness path; a request for an issue URL that doesn't match the repository bound to the run is also rejected before any model call.
 - **Injection fixture:** three of three runs of one attack fixture, with mocked GitHub and a live model, executed no off-task calls. This is not a general resistance rate. The fixture was not rerun after the attribution changes.
 - **Local website end to end:** unverified at this checkpoint. Ivaylo's local Firebase Admin credentials are missing; sign-in, report persistence, and history have not been verified together. This describes that local setup, not the state of every deployment.
 - **Model quality:** automated test passes are not aggregate correctness or reliability scores. Untested evaluation dimensions remain unscored.
@@ -159,21 +159,25 @@ See `lib/server/config.ts` for authoritative limits and configurable caps. Anthr
 - Fixing bugs, writing code, running tests, or reproducing reported behavior.
 - Posting comments, applying labels, assigning people, closing issues, or any other GitHub writes.
 - Inspecting pull-request code, verifying a proposed fix, or triaging PRs.
-- Researching repositories outside the approved `calcom/cal.diy` scope, private repositories, or other trackers.
+- Researching private repositories or trackers other than public GitHub issues.
 - Automatic new-issue monitoring, bulk triage, or ongoing reporter conversations.
 - Creating new repository labels or guaranteeing exhaustive duplicate detection.
 - An approval/write-back workflow or evaluation API endpoints in this build.
 
-These boundaries keep the product focused on helping a maintainer understand one issue and decide what to check next. Read-only tools limit potential harm; one repository keeps testing manageable; explicit evidence limits prevent suggestions from being presented as verified facts. Humans take any subsequent action on GitHub themselves.
+These boundaries keep the product focused on helping a maintainer understand one issue and decide what to check next. Read-only tools limit potential harm; explicit evidence limits prevent suggestions from being presented as verified facts. Humans take any subsequent action on GitHub themselves.
 
 ## Data handling and remaining release decisions
 
-Reports can contain quoted third-party issue/comment text. **The retention and deletion policy remains unresolved.** Agree and document it before widening deployment; public signup does not resolve data-handling obligations. Review provider data terms and deployment credentials as well.
+Reports can contain quoted third-party issue/comment text. **The retention and deletion policy remains unresolved.** Agree and document it before widening deployment beyond the current closed allowlist — this is now more material, not less, since the app can research any public repository rather than one. Review provider data terms and deployment credentials as well.
 
 Before claiming the website is fully working, complete the authenticated journey above, database ownership checks, and configuration review. Confirm token permissions, model availability, usage caps, and retention decisions. No additional features are required to perform those checks.
 
 ## Stack and project guides
 
 Next.js App Router and TypeScript; Firebase Authentication and Admin SDK; Supabase Postgres; GitHub REST API; Anthropic (primary) or Groq; Vitest. Hosting is intended for Vercel.
+
+## Security hardening — October 15, 2026
+
+Ivaylo's October 14, 2026 decision to open signup/login to everyone had silently reverted a previously-closed requirement (PRD §9 finding #1, TRD §5's two-check auth gate), caught by this session's red-alert security audit (FAIL, critical). `/signup` and `/signin` still work via Firebase (Google or email/password); creating an account no longer implies API access — the backend separately re-enforces `ALLOWED_USER_EMAILS` on top of a verified session. The same change broadened the app from one hardcoded repository (`calcom/cal.diy`) to any public GitHub repository, and added `WITH CHECK` to the `runs_update_own` RLS policy as defense-in-depth. See `log.md` for the full decision record.
 
 See `APPFLOW.md`, `DESIGN-BRIEF.md`, `USER-STORIES.md`, `SCHEMA.md`, and `.env.example` for flows, interface requirements, data structure, and configuration. The shared API contract lives in `lib/contract.ts`.

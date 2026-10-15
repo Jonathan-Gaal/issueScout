@@ -1,8 +1,14 @@
-// Public registration approved by Ivaylo on October 14, 2026.
-// Require a verified Firebase identity; ownership is enforced by each data query.
+// Two distinct, separately-enforced auth checks — PRD §9 finding #1,
+// Red-Alert's highest-severity finding, TRD §5's explicit "never one
+// combined isAuthorized()" rule. A signed-in-but-not-allowlisted user
+// must be rejected by isAllowlisted explicitly, never allowed through
+// because verifySession passed. Every route handler (spec 013) must
+// call both, in this order, as two separate function calls — this
+// file intentionally exposes no combined guard to call instead.
 
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { config } from "./config";
 
 export interface VerifiedIdentity {
   uid: string;
@@ -46,5 +52,22 @@ export async function verifySession(req: Request): Promise<VerifiedIdentity | nu
     // identically to "no token" (spec 011 Edge Cases).
     return null;
   }
+}
+
+/**
+ * Check 2 of 2: is this verified identity's email on the allowlist?
+ * Pure, synchronous, no I/O. Fails closed: an empty/unset allowlist
+ * means every email is rejected, matching PRD §9's "MUST NOT be open
+ * to the public" fixed constraint — never fail-open on a misconfigured
+ * or empty ALLOWED_USER_EMAILS.
+ *
+ * Case-normalized (lowercase both sides) since email addresses are
+ * commonly case-insensitive in practice.
+ */
+export function isAllowlisted(email: string): boolean {
+  const normalizedEmail = email.trim().toLowerCase();
+  return config.allowedUserEmails.some(
+    (allowedEmail) => allowedEmail.trim().toLowerCase() === normalizedEmail
+  );
 }
 

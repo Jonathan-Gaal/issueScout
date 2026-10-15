@@ -31,6 +31,9 @@ export type ModelStopReason = "end_turn" | "tool_use" | "max_tokens" | "other";
 export interface ModelResponse {
   content: ModelContentBlock[];
   stopReason: ModelStopReason;
+  /** Token usage for this one call, when the provider reports it — optional, for cost/spend observability only. */
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 export interface ModelCompletionParams {

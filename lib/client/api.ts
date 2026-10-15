@@ -10,7 +10,7 @@ export class ApiFailure extends Error {
 export function isAccessError(code: ErrorCode): boolean {
   switch (code) {
     case "unauthorized": return true;
-    case "invalid_url": case "repo_not_allowed": case "is_pull_request":
+    case "invalid_url": case "is_pull_request":
     case "not_found": case "issue_too_long": case "rate_limited": case "timeout":
     case "github_error": case "model_output_invalid": case "turn_limit":
     case "time_limit": case "run_rate_limited": case "write_failed": return false;

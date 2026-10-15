@@ -13,8 +13,6 @@ export type ModelProviderName = "anthropic" | "groq";
 export type AuthProviderName = "firebase";
 
 export interface AppConfig {
-  approvedRepo: string;
-
   // D2: model provider choice.
   modelProvider: ModelProviderName;
   anthropicApiKey: string | undefined;
@@ -30,8 +28,9 @@ export interface AppConfig {
   maxOutputTokens: number;
   runsPerUserPerHour: number;
 
-  // D9: auth provider.
+  // D9: auth provider + allowlist.
   authProvider: AuthProviderName;
+  allowedUserEmails: string[];
 
   // CORS — non-wildcard explicit allowlist (PRD §9 finding #5). This is
   // a hard security requirement, not an open product decision, so it
@@ -61,14 +60,22 @@ function parseCorsAllowedOrigins(rawValue: string | undefined): string[] {
     .filter((origin) => origin.length > 0);
 }
 
+function parseAllowedUserEmails(rawValue: string | undefined): string[] {
+  if (!rawValue) {
+    return [];
+  }
+  return rawValue
+    .split(",")
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0);
+}
+
 function positiveLimit(name: string, fallback: number, maximum: number): number {
   const value = Number(process.env[name] ?? fallback);
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) throw new Error(`Invalid configuration: ${name}`);
   return value;
 }
 export const config: AppConfig = {
-  approvedRepo: process.env.APPROVED_REPO ?? "calcom/cal.diy",
-
   // D2 — CONFIRM BEFORE SHIPPING: Anthropic vs Groq final choice.
   modelProvider: (process.env.MODEL_PROVIDER as ModelProviderName) ?? "anthropic",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
@@ -87,6 +94,7 @@ export const config: AppConfig = {
 
   // D9: Firebase confirmed by Ivaylo on October 10, 2026.
   authProvider: (process.env.AUTH_PROVIDER as AuthProviderName) ?? "firebase",
+  allowedUserEmails: parseAllowedUserEmails(process.env.ALLOWED_USER_EMAILS),
 
   corsAllowedOrigins: parseCorsAllowedOrigins(process.env.CORS_ALLOWED_ORIGINS),
 

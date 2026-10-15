@@ -4,8 +4,9 @@
 //
 // The tool schema below has NO owner/repo property at any nesting level
 // — this is the schema-level half of "the model never supplies
-// owner/repo" (lib/server/github/client.ts hardcodes it from
-// config.approvedRepo; this file is the other half of that enforcement).
+// owner/repo" (lib/server/github/client.ts binds the repo once at
+// construction, from the validated input URL; this file is the other
+// half of that enforcement).
 
 import { z } from "zod";
 import { BackendFailure } from "../failure";
@@ -20,7 +21,7 @@ import { config } from "../config";
 export const GITHUB_ISSUE_RESEARCH_TOOL: ToolDefinition = {
   name: "github_issue_research",
   description:
-    "Read or search issues in the approved repository. Use operation='read' with an issue number to retrieve an issue and its comments, or operation='search' with a query string to find related issues.",
+    "Read or search issues in the repository identified by the submitted issue URL. Use operation='read' with an issue number to retrieve an issue and its comments, or operation='search' with a query string to find related issues.",
   inputSchema: {
     type: "object",
     properties: {
