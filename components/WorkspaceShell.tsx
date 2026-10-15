@@ -22,9 +22,12 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     if (!auth) return;
     return onAuthStateChanged(auth, value => { setUser(value); setLoading(false); }, () => { setError("Your session could not be checked. Please reload."); setLoading(false); });
   }, []);
+  const [signingOut, setSigningOut] = useState(false);
   async function logout() {
+    setSigningOut(true); setError("");
     try { const auth = clientAuth(); if (auth) await signOut(auth); router.push("/signin"); }
     catch { setError("Could not sign out. Please try again."); }
+    finally { setSigningOut(false); }
   }
   const links = demo
     ? [["/demo", "Start a report"], ["/demo/report", "Report"], ["/demo/history", "History"]]
@@ -39,7 +42,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       </nav>
       <div className="workspace-sidebar-bottom"><Link className="sidebar-help" href={demo ? "/demo/guide" : "/guide"}>How to use IssueScout</Link><span className="workspace-badge">{demo ? "Sample workspace" : "Your workspace"}</span><p>Research only.<br />You decide what changes.</p><Link href={demo ? "/signin" : "/demo/report"}>{demo ? "Sign in for a real report" : "See sample"}</Link></div>
     </aside>}
-    <div className="workspace-body"><header className="workspace-topbar">{entry ? <Link href="/" className="brand">IssueScout</Link> : <span>{demo ? "Try the experience" : "Issue research workspace"}</span>}<div>{user ? <><span className="session-email">{user.email}</span><button onClick={logout}>Sign out</button></> : <><Link href={path === "/signin" ? "/signup" : "/signin"}>{path === "/signin" ? "Sign up" : "Sign in"}</Link>{entry && <Link href="/demo/report">See sample</Link>}</>}</div></header>
+    <div className="workspace-body"><header className="workspace-topbar">{entry ? <Link href="/" className="brand">IssueScout</Link> : <span>{demo ? "Try the experience" : "Issue research workspace"}</span>}<div>{user ? <><span className="session-email">{user.email}</span><button className="workspace-signout" onClick={logout} disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button></> : <><Link href={path === "/signin" ? "/signup" : "/signin"}>{path === "/signin" ? "Sign up" : "Sign in"}</Link>{entry && <Link href="/demo/report">See sample</Link>}</>}</div></header>
     {error && <p className="workspace-alert" role="alert">{error}</p>}
     {demo && path !== "/demo/report" && <div className="demo-banner"><strong>Sample mode</strong> Prepared examples, not live research. Sign in to research your own issue.</div>}
     <main key={path} className="workspace-main" id="workspace-main">{children}</main>

@@ -137,3 +137,88 @@
 .editorial .report-view details>summary{color:#36536b;min-width:0}
 .editorial .report-view details>summary:hover{color:#76551e}
 .editorial .report-view details[open]>:not(summary),.editorial .sample-outcome-options[open]>.partial-explainer{animation-name:readable-enter}
+
+/* Ordinal urgency: never a fabricated percentage or confidence score. */
+.urgency-meter { margin: 20px 0; }
+.urgency-segments { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.urgency-track { height: 12px; border-radius: 20px; overflow: hidden; background: rgba(72,91,111,.12); border: 1px solid rgba(72,91,111,.15); }
+.urgency-track>span { display: block; height: 100%; border-radius: inherit; width: 0; }
+.urgency-segment.is-active .urgency-track>span { width: 100%; background: #6688a4; transform-origin: left; }
+.urgency-medium .is-active .urgency-track>span { background: linear-gradient(90deg,#c79e4d,#b77d27); }
+.urgency-high .is-active .urgency-track>span { background: #bd5450; }
+.urgency-high .urgency-segment:nth-child(1) .urgency-track>span { background: #c5a45f; }
+.urgency-high .urgency-segment:nth-child(2) .urgency-track>span { background: #c98148; }
+.urgency-label { display: block; margin-top: 7px; color: #526578; font-size: .76rem; }
+.urgency-pending { display: flex; align-items: center; gap: 9px; margin-top: 12px; color: #805c20; font-size: .8rem; }
+.urgency-pending>span { flex: 0 0 8px; height: 8px; border-radius: 50%; background: #b48a3b; }
+@keyframes urgency-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes urgency-attention { 0%,100% { box-shadow: 0 0 0 0 rgba(180,138,59,.25); } 50% { box-shadow: 0 0 0 6px rgba(180,138,59,0); } }
+.motion-on .is-active .urgency-track>span { animation: urgency-fill .9s cubic-bezier(.2,.7,.2,1) both; }
+.motion-on .urgency-segment:nth-child(2) .urgency-track>span { animation-delay: .3s; }
+.motion-on .urgency-segment:nth-child(3) .urgency-track>span { animation-delay: .6s; }
+.motion-on .urgency-pending>span { animation: urgency-attention 1.8s ease-in-out 2; }
+@media(prefers-reduced-motion:reduce) { .urgency-meter * { animation: none!important; } }
+.motion-off .urgency-meter * { animation: none!important; }
+
+/* Scroll reveals stay readable; motion carries attention, never evidence. */
+@keyframes report-rise { from { translate: 0 18px; } to { translate: 0 0; } }
+@keyframes report-focus { 0%,100% { box-shadow: 0 0 0 0 rgba(188,145,57,0); } 35%,65% { box-shadow: 0 0 0 5px rgba(188,145,57,.3), 0 12px 32px rgba(188,145,57,.15); } }
+.motion-on .report-motion .finding.motion-seen,
+.motion-on .report-motion .evidence-card-list>li.motion-seen { animation: report-rise .65s cubic-bezier(.2,.8,.2,1) both; }
+.motion-on .report-motion .finding:nth-child(2),
+.motion-on .report-motion .evidence-card-list>li:nth-child(2) { animation-delay: .14s; }
+.motion-on .report-motion .finding:nth-child(3),
+.motion-on .report-motion .evidence-card-list>li:nth-child(3) { animation-delay: .28s; }
+.motion-on .report-motion .scene-pair.motion-seen .booking-time { animation: report-focus 1.4s ease-out .2s both; }
+.motion-on .report-motion .scene-pair.motion-seen .email-time { animation: report-focus 1.4s ease-out 1.1s both; }
+.motion-on .report-motion #report-next-step.motion-seen .next-step-intro { animation: report-focus 1.6s ease-out .2s both; border-radius: 12px; }
+.motion-on .report-motion .scope-metric.motion-seen .scope-meter i { transform-origin: left; animation: urgency-fill 2s cubic-bezier(.2,.8,.2,1) both; }
+.motion-on .report-motion .scope-metric:nth-child(2) .scope-meter i { animation-delay: .15s; }
+.motion-on .report-motion .scope-metric:nth-child(3) .scope-meter i { animation-delay: .3s; }
+.motion-on .report-motion details[open]>:not(summary) { animation: report-rise .3s ease-out; }
+@supports (interpolate-size: allow-keywords) {
+ .motion-on .report-motion details { interpolate-size: allow-keywords; }
+ .motion-on .report-motion details::details-content { block-size: 0; overflow: clip; transition: block-size .35s ease, content-visibility .35s allow-discrete; }
+ .motion-on .report-motion details[open]::details-content { block-size: auto; }
+}
+@media(hover:hover) {
+ .motion-on .report-motion :is(.finding,.scene-window,.evidence-card-list>li,.scope-metric) { transition: translate .25s ease, box-shadow .25s ease, border-color .25s ease; }
+ .motion-on .report-motion :is(.finding,.scene-window,.evidence-card-list>li,.scope-metric):hover { translate: 0 -3px; border-color: #bd964b; box-shadow: 0 12px 28px rgba(111,90,46,.12); }
+ .motion-on .workspace-button { transition: translate .2s ease, box-shadow .2s ease; }
+ .motion-on .workspace-button:hover:not(:disabled) { translate: 0 -2px; box-shadow: 0 8px 22px rgba(164,125,47,.22); }
+}
+.motion-off .report-motion *, .motion-off .report-motion details::details-content { animation: none!important; transition: none!important; translate: none!important; }
+@media(prefers-reduced-motion:reduce) {
+ .report-motion *, .report-motion details::details-content, .workspace-button { animation: none!important; transition: none!important; translate: none!important; }
+}
+
+.animated-summary { position: relative; padding-bottom: 26px; }
+.summary-type-layout { position: relative; }
+.summary-reserve { visibility: hidden; }
+.summary-typed { position: absolute; inset: 0; }
+.summary-cursor { color: #a67c2d; }
+.summary-accessible { position: absolute!important; width: 1px!important; height: 1px!important; padding: 0!important; margin: -1px!important; overflow: hidden!important; clip-path: inset(50%); white-space: nowrap; }
+.summary-show-all { position: absolute; bottom: 0; left: 0; border: 0; background: transparent; color: #805c20; font: inherit; font-size: .8rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* Research metrics animate each time their evidence panel opens. */
+@keyframes metric-arrive { from { translate: 0 18px; } to { translate: 0 0; } }
+@keyframes metric-number { 0% { scale: .85; } 65% { scale: 1.08; } 100% { scale: 1; } }
+.motion-on .report-research-details[open] .scope-metric.motion-seen {
+ animation: metric-arrive .65s cubic-bezier(.2,.8,.2,1) both;
+}
+.motion-on .report-research-details[open] .scope-metric.motion-seen>strong {
+ display: inline-block; transform-origin: left center;
+ animation: metric-number .8s ease-out both;
+}
+.motion-on .report-research-details[open] .scope-metric.motion-seen .scope-meter i {
+ transform-origin: left; animation: urgency-fill 2s cubic-bezier(.2,.8,.2,1) both;
+}
+.motion-on .report-research-details[open] .scope-metric.motion-seen:nth-child(2),
+.motion-on .report-research-details[open] .scope-metric.motion-seen:nth-child(2)>strong,
+.motion-on .report-research-details[open] .scope-metric.motion-seen:nth-child(2) .scope-meter i { animation-delay: .2s; }
+.motion-on .report-research-details[open] .scope-metric.motion-seen:nth-child(3),
+.motion-on .report-research-details[open] .scope-metric.motion-seen:nth-child(3)>strong,
+.motion-on .report-research-details[open] .scope-metric.motion-seen:nth-child(3) .scope-meter i { animation-delay: .4s; }
+@media(prefers-reduced-motion:reduce) {
+ .report-research-details .scope-metric.motion-seen, .report-research-details .scope-metric.motion-seen>* { animation: none!important; }
+}
