@@ -37,6 +37,9 @@ export interface RunHarnessResult {
   status: "completed" | "stopped" | "failed";
   report?: Report;
   errorCode?: ErrorCode;
+  /** Summed across every model turn in this run (including format-retry turns), when the provider reports usage. For cost/spend observability only — never persisted as part of Report. */
+  inputTokensUsed?: number;
+  outputTokensUsed?: number;
 }
 
 export interface PersistableToolCall {
@@ -362,6 +365,8 @@ export async function runHarness(params: RunHarnessParams, dependencies: RunHarn
   const toolCalls: PersistableToolCall[] = [];
   const toolCallRunState = createInitialToolCallRunState();
   let modelTurnsUsed = 0;
+  let inputTokensUsed = 0;
+  let outputTokensUsed = 0;
   let observedIssue: GitHubIssue | undefined;
   let commentsTruncated = false;
   let snapshot: Parameters<NonNullable<RunHarnessDependencies["persistRun"]>>[0] | undefined;
@@ -381,7 +386,13 @@ export async function runHarness(params: RunHarnessParams, dependencies: RunHarn
   let result: RunHarnessResult;
   try {
     result = await Promise.race([timeout, runHarnessInner(params, { ...dependencies, githubClient, toolCallLog: toolCalls, toolCallRunState,
-      modelProvider: { complete: p => { guard(); modelTurnsUsed += 1; fallback = "model_output_invalid"; return dependencies.modelProvider.complete({ ...p, signal: controller.signal }); } },
+      modelProvider: { complete: async p => {
+        guard(); modelTurnsUsed += 1; fallback = "model_output_invalid";
+        const response = await dependencies.modelProvider.complete({ ...p, signal: controller.signal });
+        if (response.inputTokens !== undefined) inputTokensUsed += response.inputTokens;
+        if (response.outputTokens !== undefined) outputTokensUsed += response.outputTokens;
+        return response;
+      } },
       persistRun: async outcome => { guard(); snapshot = outcome; },
     })]);
   } catch (error) { result = buildErrorResult(failureCode(error, fallback)); }
@@ -399,5 +410,8 @@ export async function runHarness(params: RunHarnessParams, dependencies: RunHarn
   try {
     await dependencies.persistRun?.({ ...(snapshot ?? { ...params, ...result, toolCalls: structuredClone(toolCalls) }), modelTurnsUsed });
   } catch { return buildErrorResult("write_failed"); }
-  return result;
+  // Omitted entirely (not 0) when no model turn ever ran — a pre-model-call
+  // failure (rate limit, invalid URL, not found...) has no usage to report,
+  // which is a different thing from a provider legitimately reporting 0.
+  return modelTurnsUsed > 0 ? { ...result, inputTokensUsed, outputTokensUsed } : result;
 }

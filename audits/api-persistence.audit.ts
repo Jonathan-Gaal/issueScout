@@ -12,7 +12,7 @@ vi.mock("../lib/server/auth", () => ({
 }));
 vi.mock("../lib/server/db/runs", () => ({ runs: {
   admit: fakes.create, finish: vi.fn(async () => {}), create: fakes.create, updateStatus: fakes.updateStatus, getOwned: fakes.getOwned,
-  countInLastHour: vi.fn(async () => 0), list: vi.fn(async () => []),
+  countInLastHour: vi.fn(async () => 0), list: vi.fn(async () => []), hasRunBefore: vi.fn(async () => false),
 } }));
 vi.mock("../lib/server/db/reports", () => ({ reports: {
   create: fakes.reportCreate,

@@ -160,6 +160,32 @@ describe("runHarness", () => {
     expect(result.report?.coverage.searchesFailed).toBeGreaterThanOrEqual(1);
   });
 
+  it("sums inputTokensUsed/outputTokensUsed across every model turn, including a tool-call turn", async () => {
+    const githubClient = createFakeGitHubClient();
+    const modelProvider = createFakeModelProvider([
+      {
+        content: [{ type: "tool_use", id: "t1", name: "github_issue_research", input: { operation: "search", query: "crash" } }],
+        stopReason: "tool_use",
+        inputTokens: 1000,
+        outputTokens: 50,
+      },
+      {
+        content: [{ type: "text", text: JSON.stringify(VALID_MODEL_REPORT_JSON) }],
+        stopReason: "end_turn",
+        inputTokens: 1200,
+        outputTokens: 300,
+      },
+    ]);
+
+    const result = await runHarness(
+      { issueUrl: SAMPLE_ISSUE_URL, userId: "user-1" },
+      { githubClient, modelProvider, countRunsInLastHour: alwaysAllowedRateCheck }
+    );
+
+    expect(result.inputTokensUsed).toBe(2200);
+    expect(result.outputTokensUsed).toBe(350);
+  });
+
   it("never constructs a model message array when the input check fails before any model call (invalid_url)", async () => {
     const githubClient = createFakeGitHubClient();
     const completeMock = vi.fn();

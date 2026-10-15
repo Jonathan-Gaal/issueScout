@@ -102,6 +102,27 @@ export const runs = {
   },
 
   /**
+   * Whether this user has ever started a run before, for the
+   * user_first_run observability event (session work: shared-credential-
+   * exposure detection). Cheap: user_id is the leading column of the
+   * existing composite index, and this is a head-only existence check,
+   * not a row fetch. Must be called before admit() reserves the current
+   * run's own row, or it would always see itself and report true.
+   */
+  async hasRunBefore(userId: string): Promise<boolean> {
+    const { count, error } = await supabaseClient
+      .from(RUNS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .limit(1);
+
+    if (error) {
+      throw new Error(`Failed to check run history for user ${userId}: ${error.message}`);
+    }
+    return (count ?? 0) > 0;
+  },
+
+  /**
    * Lists this user's own runs, newest first — user_id is a required
    * parameter baked into the query itself (US-5's "only that user's
    * runs" guarantee), never an optional filter a caller could omit.

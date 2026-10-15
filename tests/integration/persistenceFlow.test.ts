@@ -4,6 +4,7 @@ import type { RunHarnessDependencies } from "../../lib/server/harness/runHarness
 const state = vi.hoisted(() => ({ outcome: null as null | Parameters<NonNullable<RunHarnessDependencies["persistRun"]>>[0], failWrite: false, allowed: true }));
 vi.mock("../../lib/server/auth", () => ({ verifySession: async () => ({ uid: "owner", email: "owner@example.com" }), isAllowlisted: () => true }));
 vi.mock("../../lib/server/db/runs", () => ({ runs: {
+  hasRunBefore: vi.fn(async () => false),
   admit: vi.fn(async () => state.allowed ? { id: "saved-run" } : null),
   finish: vi.fn(async (_id, _user, _repo, outcome) => { if (state.failWrite) throw new Error("private upstream text"); state.outcome = outcome; }),
   getOwned: async (id: string, user: string) => id === "saved-run" && user === "owner" ? { id, status: state.outcome?.status } : null,

@@ -73,10 +73,14 @@ export async function POST(req: Request): Promise<Response> {
   let runId: string | undefined;
   const startedAt = Date.now();
   try {
+    // Must be checked before admit() reserves this run's own row, or it
+    // would always see itself and report "has run before" incorrectly.
+    const isFirstRun = (await runs.hasRunBefore(identity.uid)) === false;
     const run = await runs.admit({ userId: identity.uid, issueUrl }, config.runsPerUserPerHour);
     if (!run) return NextResponse.json(buildApiErrorBody("run_rate_limited"), { status: getErrorStatus("run_rate_limited"), headers: corsHeaders });
     runId = run.id;
     logRunEvent(runId, "run_started");
+    if (isFirstRun) logRunEvent(runId, "user_first_run");
     const harnessResult = await runHarness({ issueUrl, userId: identity.uid }, {
       githubClient: new RestGitHubClient(repo), modelProvider: getModelProvider(),
       // Admission has already atomically reserved this run against the limit.
@@ -86,7 +90,12 @@ export async function POST(req: Request): Promise<Response> {
         await runs.finish(run.id, identity.uid, repo, outcome, Date.now() - startedAt);
       },
     });
-    logRunEvent(runId, `run_${harnessResult.status}`, { durationMs: Date.now() - startedAt, errorCode: harnessResult.errorCode });
+    logRunEvent(runId, `run_${harnessResult.status}`, {
+      durationMs: Date.now() - startedAt,
+      errorCode: harnessResult.errorCode,
+      inputTokens: harnessResult.inputTokensUsed,
+      outputTokens: harnessResult.outputTokensUsed,
+    });
     if (harnessResult.status === "failed") {
       const code = harnessResult.errorCode ?? "github_error";
       if (code === "write_failed") {

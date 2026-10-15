@@ -113,6 +113,8 @@ export class AnthropicProvider implements ModelProvider {
     return {
       content: normalizeAnthropicContent(response.content),
       stopReason: toAnthropicStopReason(response.stop_reason),
+      inputTokens: response.usage?.input_tokens,
+      outputTokens: response.usage?.output_tokens,
     };
   }
 }
