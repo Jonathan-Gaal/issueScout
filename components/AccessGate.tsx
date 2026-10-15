@@ -7,7 +7,7 @@ import { hasFirebaseConfig } from "../lib/client/config";
 import { useSession } from "./WorkspaceShell";
 export default function AccessGate({ children }: { children: ReactNode }) {
   const { user, loading } = useSession();
-  if (!hasFirebaseConfig) return <section className="workspace-card access-card"><span className="workspace-kicker">LIVE WORKSPACE</span><h1>Live sign-in isn’t connected yet.</h1><p>You can explore the complete sample workflow now. Live analysis will be available after the project’s Firebase and backend configuration is connected.</p><Link className="workspace-button" href="/demo">Explore sample workspace</Link><Link className="workspace-text-link" href="/signin">View sign-in setup status</Link></section>;
+  if (!hasFirebaseConfig) return <section className="workspace-card access-card"><span className="workspace-kicker">LIVE WORKSPACE</span><h1>Live sign-in isn’t connected yet.</h1><p>You can explore the complete sample workflow now. Live analysis will be available after the project’s Firebase and backend configuration is connected.</p><Link className="workspace-button" href="/demo/report">See sample</Link><Link className="workspace-text-link" href="/signin">View sign-in setup status</Link></section>;
   if (loading) return <p role="status">Checking your session…</p>;
   if (!user) return <section className="workspace-card access-card"><h1>Sign in to research an issue.</h1><p>Your reports belong to your account. Anyone can create an account with Google.</p><Link className="workspace-button" href="/signin">Sign in</Link><Link className="workspace-text-link" href="/signup">Create an account</Link></section>;
   return <VerifiedAccess key={user.uid}>{children}</VerifiedAccess>;

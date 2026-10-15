@@ -71,3 +71,25 @@ The report begins with a boarding-pass-inspired glass card: dark brand/status st
 ## Visual report narrative
 
 The report now explains five questions: what happened, why it matters, what supports it, what is missing, and what to do next. The piano-lesson sample supplies a typed UI comparison of 3 PM and 2 PM; this is not inferred for unrelated live reports. Real reports use their supplied summary, priority evidence, source observations, missing information and recommended next step. Model assessment and uncertainty are identified separately. All content remains escaped text.
+
+## October 15 UX consistency fixes
+
+- Landing and account entry identify maintainers and disclose the current repository before signup.
+- Demo entry opens a prepared fictional issue, with no disabled paste field. The saved real issue is explicitly a separate example.
+- Sample and live output share ReportView, section navigation, partial warnings, evidence, next-step and coverage layout. Booking/email illustrations are sample-only; no screenshots are inferred for live issues.
+- Running results offer refresh; terminal failures offer a new report. Session recovery signs out before returning to sign-in.
+- Trust page states that retention, deletion and deployed provider disclosure are not yet published. The pair must finalize these before public launch; this implementation does not invent policy or add deletion capabilities.
+
+## Report clarity refinement
+The shared report now leads with three sections: reported problem, IssueScout assessment, and the user's next step. Evidence, missing details, related issues, limitations and research counts remain available in one native disclosure below. Partial warnings remain visible above the report. The sample's outcome controls are optional below the story; its illustrations remain clearly labeled as prepared content. This supersedes the earlier fixed visual ordering while preserving all Report fields and escaped text.
+
+## Sample investigation board
+The illustrated sample uses a responsive board variant of the shared ReportView. Booking/email evidence sits beside assessment on desktop, then stacks on smaller screens. Missing details are three cards, followed by a prominent next step. Subtle entrance motion, a finite mismatch glow, and hover lift respect the workspace pause toggle and reduced-motion preference. No simulated analysis or generated screenshots are implied.
+
+### October 15 visual and navigation review
+- Final direction: dark discovery-style landing and account pages; light gold-accented translucent workspace. The cockpit and dark workspace background experiments were reverted.
+- Workspace navigation follows Start a report, Report, History; help is separate. The live Report item explains how to select a report when none is open.
+- Start supports URL entry and a prepared sample. The public entry retains the URL in sessionStorage for the sign-in handoff; live submission still requires authenticated server checks.
+- Sample report presents the booking/email mismatch, assessment, next actions, expandable evidence, and complete/partial examples. All sample activity counts are illustrative.
+- History distinguishes completed, stopped, failed, and running outcomes. Public pages disclose the approved repository and unresolved data-policy details.
+- Disclosure controls use Show/Hide; essential text appears immediately; motion retains pause and reduced-motion support.

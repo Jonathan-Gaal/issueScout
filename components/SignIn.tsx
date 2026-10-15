@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleAuthProvider, signInWithPopup } from "@firebase/auth";
 import { clientAuth } from "../lib/client/firebase";
-import { hasFirebaseConfig } from "../lib/client/config";
+import { clientConfig, hasFirebaseConfig } from "../lib/client/config";
 import { api, ApiFailure } from "../lib/client/api";
 import { useSession } from "./WorkspaceShell";
 export default function SignIn({ mode = "signin" }: { mode?: "signin" | "signup" }) {
@@ -21,5 +21,20 @@ export default function SignIn({ mode = "signin" }: { mode?: "signin" | "signup"
       else setError(e instanceof ApiFailure ? e.message : "Sign-in did not finish. Allow the sign-in window, then try again.");
     } finally { setBusy(false); }
   }
-  return <div className="signin-layout"><div><span className="workspace-kicker">YOUR RESEARCH WORKSPACE</span><h1>Make room<br />for clarity.</h1><p>Bring one GitHub issue. Get a structured research report with evidence, missing details, and a recommendation.</p><ul className="signin-benefits"><li>Read-only research</li><li>Evidence you can check</li><li>Your own report history</li></ul></div><section className="workspace-card"><span className="workspace-badge">Open to everyone</span><h2>{mode === "signup" ? "Create your account" : "Welcome back"}</h2><p>{mode === "signup" ? "Sign up with Google to start your own report history. No invitation needed." : "Sign in with your Google account to access your reports."}</p>{!hasFirebaseConfig && <div className="workspace-alert"><strong>Live sign-in is not configured.</strong><p>The sample workspace is ready to explore. The project owner needs to add the Firebase web configuration before live sign-in works.</p></div>}<button className="workspace-button" disabled={!hasFirebaseConfig || busy} onClick={login}>{busy ? "Checking access…" : user ? "Continue to workspace" : mode === "signup" ? "Sign up with Google" : "Sign in with Google"}</button>{error && <p role="alert" className="workspace-error">{error}</p>}<p className="account-switch">{mode === "signup" ? "Already have an account? " : "New to IssueScout? "}<Link href={mode === "signup" ? "/signin" : "/signup"}>{mode === "signup" ? "Sign in" : "Sign up"}</Link></p><div className="signin-divider">Want to look around first?</div><Link className="workspace-button secondary" href="/demo">Try the sample workspace</Link><small>No sign-in needed for the sample.</small></section></div>;
+  const signup = mode === "signup";
+  return <div className="signin-layout auth-gold-layout">
+    <div className="auth-intro"><span className="workspace-kicker">ISSUESCOUT · YOUR RESEARCH WORKSPACE</span><h1>{signup ? <>Less guesswork.<br /><span>A clearer next step.</span></> : <>Your research.<br /><span>Ready to revisit.</span></>}</h1><p>Turn a GitHub issue into findings, supporting evidence, and a next step you can review.</p>
+      <div className="auth-journey" aria-label="After signing in"><div><span>01</span><p>Paste an issue link</p></div><div><span>02</span><p>Review the report</p></div><div><span>03</span><p>Return to your history</p></div></div>
+      <p className="auth-scope">Currently supports <strong>{clientConfig.approvedRepo}</strong>. Read-only: no comments, labels, or closures are applied.</p>
+    </div>
+    <section className="workspace-card auth-panel" aria-labelledby="auth-heading"><span className="workspace-badge">{user ? "Google account connected" : signup ? "No invitation needed" : "WELCOME BACK"}</span><h2 id="auth-heading">{user ? "Continue to IssueScout" : signup ? "Create your account" : "Sign in to IssueScout"}</h2><p>{user ? "Open your workspace to start a report or review your history." : signup ? "Use your Google account to get started. There’s no separate IssueScout password to create." : "Use the Google account you used before to access your saved reports."}</p>
+      {!hasFirebaseConfig && <div className="workspace-alert"><strong>Sign-in is temporarily unavailable.</strong><p>You can still explore the sample below.</p></div>}
+      <button className="workspace-button auth-google-button" disabled={!hasFirebaseConfig || busy} onClick={login} aria-describedby="auth-help">{!busy && !user && <span aria-hidden="true" className="auth-google-mark">G</span>}{busy ? "Opening your workspace…" : user ? "Continue to workspace" : signup ? "Sign up with Google" : "Sign in with Google"}</button>
+      <small id="auth-help">{user ? "Your reports are associated with your signed-in account." : "A Google sign-in window opens. Choose an account to continue."}</small>
+      {error && <p role="alert" className="workspace-error">{error}</p>}
+      {!user && <p className="account-switch">{signup ? "Already have an account? " : "New to IssueScout? "}<Link href={signup ? "/signin" : "/signup"}>{signup ? "Sign in" : "Create an account"}</Link></p>}
+      <div className="signin-divider"><span>Just looking?</span></div><Link className="workspace-button secondary" href="/demo/report">Explore the sample report</Link><small>No account needed. Prepared example, not live research.</small>
+      <Link href="/trust" className="auth-data-link">How IssueScout handles your data</Link>
+    </section>
+  </div>;
 }

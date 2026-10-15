@@ -22,7 +22,7 @@ export const sampleReport: Report = {
   recommendedNextStep: "Compare the booking’s timezone with the email’s timezone. Confirm the customer and teacher timezones before deciding whether either displayed time is wrong.",
   proposedActions: [],
   containsEmbeddedInstructions: false,
-  limitations: ["This is synthetic sample content, not a live analysis.", "The cause and customer impact have not been verified.", "The coverage counts below are illustrative and were not produced by a live run."],
+  limitations: ["This is synthetic sample content, not a live analysis.", "The cause and customer impact have not been verified.", "The coverage counts are illustrative and were not produced by a live run."],
   coverage: { searchesRun: 2, searchesFailed: 0, candidatesRead: 3, commentsTruncated: false, stopReason: "completed", removedByValidation: [] },
 };
 

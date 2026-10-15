@@ -26,21 +26,23 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     try { const auth = clientAuth(); if (auth) await signOut(auth); router.push("/signin"); }
     catch { setError("Could not sign out. Please try again."); }
   }
-  const links = [[demo ? "/demo" : "/workspace", "New report"], [demo ? "/demo/history" : "/runs", "Report history"], [demo ? "/demo/guide" : "/guide", "How to use IssueScout"]];
+  const links = demo
+    ? [["/demo", "Start a report"], ["/demo/report", "Report"], ["/demo/history", "History"]]
+    : [["/workspace", "Start a report"], [path.startsWith("/runs/") ? path : "", "Report"], ["/runs", "History"]];
   return <SessionContext.Provider value={{ user, loading }}><div className={`workspace-app editorial ${entry ? "entry-layout" : ""} ${motion ? "motion-on" : "motion-off"}`}><a className="skip" href="#workspace-main">Skip to workspace</a>
     {!entry && <aside className="workspace-sidebar">
       <Link href="/" className="brand"><span className="brand-icon">i</span> IssueScout</Link>
       <button className="workspace-menu" aria-expanded={menu} aria-controls="workspace-navigation" onClick={() => setMenu(!menu)}>{menu ? "Close menu" : "Menu"}</button>
       <nav id="workspace-navigation" className={menu ? "open" : ""} aria-label="Workspace navigation">
         <span className="workspace-nav-label">YOUR WORKSPACE</span>
-        {links.map(([href, label]) => <Link key={href} href={href} onClick={() => setMenu(false)} aria-current={path === href || (href === "/runs" && path.startsWith("/runs/")) || (href === "/demo/history" && path === "/demo/report") ? "page" : undefined}>{label}</Link>)}
+        {links.map(([href, label]) => !href ? <span key={label} className="sidebar-pending" aria-disabled="true">Report<small>Create a report or open one from History</small></span> : <Link key={href} href={href} onClick={() => setMenu(false)} aria-current={path === href ? "page" : undefined}>{label}</Link>)}
       </nav>
-      <div className="workspace-sidebar-bottom"><span className="workspace-badge">{demo ? "Sample workspace" : "Your workspace"}</span><p>Research only.<br />You decide what changes.</p><Link href={demo ? "/signin" : "/demo"}>{demo ? "Sign in for a real report" : "Explore sample workspace"}</Link></div>
+      <div className="workspace-sidebar-bottom"><Link className="sidebar-help" href={demo ? "/demo/guide" : "/guide"}>How to use IssueScout</Link><span className="workspace-badge">{demo ? "Sample workspace" : "Your workspace"}</span><p>Research only.<br />You decide what changes.</p><Link href={demo ? "/signin" : "/demo/report"}>{demo ? "Sign in for a real report" : "See sample"}</Link></div>
     </aside>}
-    <div className="workspace-body"><header className="workspace-topbar">{entry ? <Link href="/" className="brand">IssueScout</Link> : <span>{demo ? "Try the experience" : "Issue research workspace"}</span>}<div>{user ? <><span className="session-email">{user.email}</span><button onClick={logout}>Sign out</button></> : <><Link href={path === "/signin" ? "/signup" : "/signin"}>{path === "/signin" ? "Sign up" : "Sign in"}</Link>{entry && <Link href="/demo">Try demo</Link>}</>}</div></header>
+    <div className="workspace-body"><header className="workspace-topbar">{entry ? <Link href="/" className="brand">IssueScout</Link> : <span>{demo ? "Try the experience" : "Issue research workspace"}</span>}<div>{user ? <><span className="session-email">{user.email}</span><button onClick={logout}>Sign out</button></> : <><Link href={path === "/signin" ? "/signup" : "/signin"}>{path === "/signin" ? "Sign up" : "Sign in"}</Link>{entry && <Link href="/demo/report">See sample</Link>}</>}</div></header>
     {error && <p className="workspace-alert" role="alert">{error}</p>}
-    {demo && <div className="demo-banner"><strong>Sample mode</strong> Sample reports are illustrative. The real-issue preview is a saved GitHub snapshot; no AI research runs here.</div>}
+    {demo && path !== "/demo/report" && <div className="demo-banner"><strong>Sample mode</strong> Prepared examples, not live research. Sign in to research your own issue.</div>}
     <main key={path} className="workspace-main" id="workspace-main">{children}</main>
-    <footer className="workspace-footer"><span>IssueScout · Built by Ivaylo & Jonathan</span><button className="motion-toggle" aria-pressed={motion} onClick={() => setMotion(!motion)}>{motion ? "Pause" : "Enable"} animations</button><Link href="/trust">Trust & safety</Link></footer></div>
+    <footer className="workspace-footer"><span>IssueScout · Built by Ivaylo & Jonathan</span><button className="motion-toggle" aria-pressed={motion} onClick={() => setMotion(!motion)}>{motion ? "Pause" : "Enable"} animations</button><Link href={demo ? "/demo/guide" : "/guide"}>Help</Link><Link href="/trust">Trust & safety</Link></footer></div>
   </div></SessionContext.Provider>;
 }
