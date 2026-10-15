@@ -7,3 +7,6 @@ next-env.d.ts
 *.tsbuildinfo
 issuescout/
 issuescout/
+
+# Local evaluation traces may contain raw tool and model data.
+traces/

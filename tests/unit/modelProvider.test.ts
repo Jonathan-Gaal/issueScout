@@ -68,6 +68,31 @@ describe("AnthropicProvider", () => {
     });
   });
 
+  it("uses the run budget and forwards cancellation instead of the GitHub timeout", async () => {
+    const construct = vi.fn();
+    const create = vi.fn().mockResolvedValue({ content: [], stop_reason: "end_turn" });
+    vi.doMock("@anthropic-ai/sdk", () => ({ default: class {
+      constructor(options: unknown) { construct(options); }
+      messages = { create };
+    } }));
+    const { AnthropicProvider } = await import("../../lib/server/model/anthropicProvider");
+    const { config } = await import("../../lib/server/config");
+    const signal = new AbortController().signal;
+    await new AnthropicProvider().complete({ ...sampleParams, signal });
+    expect(construct).toHaveBeenCalledWith(expect.objectContaining({ timeout: config.maxRunSeconds * 1000, maxRetries: 0 }));
+    expect(create).toHaveBeenCalledWith(expect.anything(), { signal });
+  });
+
+  it("classifies SDK request timeouts as timeout, not invalid model output", async () => {
+    class Timeout extends Error {}
+    vi.doMock("@anthropic-ai/sdk", () => ({ default: class {
+      static APIConnectionTimeoutError = Timeout;
+      messages = { create: vi.fn().mockRejectedValue(new Timeout("Request timed out.")) };
+    } }));
+    const { AnthropicProvider } = await import("../../lib/server/model/anthropicProvider");
+    await expect(new AnthropicProvider().complete(sampleParams)).rejects.toMatchObject({ code: "timeout" });
+  });
+
   it("throws ModelProviderConfigError at construction when ANTHROPIC_API_KEY is missing", async () => {
     delete process.env.ANTHROPIC_API_KEY;
     vi.doMock("@anthropic-ai/sdk", () => ({

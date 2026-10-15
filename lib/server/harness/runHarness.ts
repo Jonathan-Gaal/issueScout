@@ -78,7 +78,10 @@ function extractTextFromModelResponse(content: ModelMessage["content"]): string 
 
 function tryParseJson(text: string): unknown {
   try {
-    return JSON.parse(text);
+    const trimmed = text.trim();
+    // Accept only a single fenced JSON document, never extract JSON from prose.
+    const fenced = /^```(?:json)?\s*\n([\s\S]*?)\n```$/i.exec(trimmed);
+    return JSON.parse(fenced ? fenced[1] : trimmed);
   } catch {
     return undefined;
   }
