@@ -6,7 +6,7 @@
 // call both, in this order, as two separate function calls — this
 // file intentionally exposes no combined guard to call instead.
 
-import { getApps, initializeApp } from "firebase-admin/app";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { config } from "./config";
 
@@ -15,9 +15,17 @@ export interface VerifiedIdentity {
   email: string;
 }
 
+// On Vercel there is no local file for GOOGLE_APPLICATION_CREDENTIALS to
+// point to, so the service account must come in as JSON via env var.
+// Falls back to Application Default Credentials (the GOOGLE_APPLICATION_
+// CREDENTIALS file-path convention) for local dev, where that file exists.
 function getFirebaseAuth() {
   if (getApps().length === 0) {
-    initializeApp();
+    if (config.firebaseServiceAccountKey) {
+      initializeApp({ credential: cert(JSON.parse(config.firebaseServiceAccountKey)) });
+    } else {
+      initializeApp();
+    }
   }
   return getAuth();
 }

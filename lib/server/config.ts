@@ -31,6 +31,12 @@ export interface AppConfig {
   // D9: auth provider + allowlist.
   authProvider: AuthProviderName;
   allowedUserEmails: string[];
+  // Firebase Admin service account, as JSON — required on serverless
+  // platforms (Vercel) where GOOGLE_APPLICATION_CREDENTIALS' file-path
+  // convention has no local file to point to. Falls back to Application
+  // Default Credentials (GOOGLE_APPLICATION_CREDENTIALS/gcloud) when unset,
+  // which is how local dev continues to work.
+  firebaseServiceAccountKey: string | undefined;
 
   // CORS — non-wildcard explicit allowlist (PRD §9 finding #5). This is
   // a hard security requirement, not an open product decision, so it
@@ -95,6 +101,7 @@ export const config: AppConfig = {
   // D9: Firebase confirmed by Ivaylo on October 10, 2026.
   authProvider: (process.env.AUTH_PROVIDER as AuthProviderName) ?? "firebase",
   allowedUserEmails: parseAllowedUserEmails(process.env.ALLOWED_USER_EMAILS),
+  firebaseServiceAccountKey: process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
 
   corsAllowedOrigins: parseCorsAllowedOrigins(process.env.CORS_ALLOWED_ORIGINS),
 
