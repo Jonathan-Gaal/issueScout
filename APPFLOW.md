@@ -6,7 +6,7 @@
 **Author:** Starscream (PRD Writer)
 **Date:** 2026-10-08
 **Status:** Draft
-**Companion to:** `PRD.md` §5 (User Flows)
+**Companion to:** `issuescout-PRD.md` §5 (User Flows)
 
 > Full-tier project. PRD §5 narrates the primary persona's happy path in prose; this document maps the actual navigation structure — every screen, every transition, every branch point, including the Phase 1/Phase 2 split and the auth gate PRD §9 requires. Screen/route names are proposed for Ivaylo (frontend owner, not yet started) to adopt or rename at build time; the branch logic is the binding part, not the exact names.
 

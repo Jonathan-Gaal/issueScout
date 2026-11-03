@@ -4,7 +4,7 @@ This is the current frontend composition contract, based on the existing endpoin
 
 ## Decisions that supersede older documents
 
-- Anyone may create an account or sign in with Google. Firebase verifies the session and verified email; there is no invited-user allowlist. Report ownership remains enforced by the backend. Older allowlist branches in APPFLOW.md and USER-STORIES.md no longer apply.
+- Anyone may create an account or sign in with Google. Firebase verifies the session and verified email; there is no invited-user allowlist. Report ownership remains enforced by the backend. Older allowlist branches in APPFLOW.md and issuescout-USER-STORIES.md no longer apply.
 - Account availability does not mean all GitHub repositories are supported. The deployment currently researches one configured repository. Show its name before the user starts a live report.
 - `POST /api/runs` is synchronous. Show a waiting state on submission, then navigate to the returned report. Do not add a polling workflow from the older APPFLOW diagram.
 - A complete report, a partial report, and a failed run are distinct outcomes. A partial report is usable evidence with stated limits, not a successful exhaustive investigation.
@@ -56,7 +56,7 @@ A partial result must explain what stopped the run. Empty related issues means n
 3. **Keep demo navigation consistent.** The reused live guide currently sends visitors to a live workspace unexpectedly; use sample-specific actions and an explicit transition.
 4. **Make public informational pages actionable.** How it works and Trust & safety need a clear demo/signup route, without forcing visitors back home.
 5. **Add report reading guidance.** The existing field order is correct; a short introduction helps users understand how to turn the report into a decision.
-6. **Repair stale source documents.** APPFLOW.md, DESIGN-BRIEF.md, and USER-STORIES.md still contain invitation-only and polling assumptions. This contract supersedes those aspects; update them before handing the work to another builder.
+6. **Repair stale source documents.** APPFLOW.md, DESIGN-BRIEF.md, and issuescout-USER-STORIES.md still contain invitation-only and polling assumptions. This contract supersedes those aspects; update them before handing the work to another builder.
 
 No pricing, team administration, billing, integrations marketplace, bulk triage, auto-labeling, or repository setup screens are required for the current build. Adding them would suggest capabilities the backend does not provide.
 

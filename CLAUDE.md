@@ -2,7 +2,7 @@
 
 **Author:** Alpha Trion (Project Assembly)
 **Date:** 2026-10-08
-**Tier:** Full (confirmed by human after a borderline call — see `PRD.md` header)
+**Tier:** Full (confirmed by human after a borderline call — see `issuescout-PRD.md` header)
 **Scope of this run:** Phase 1 only (read-only triage). Phase 2 (write-back) and Phase 3 (evals) are scoped in the PRD but not built this cycle.
 
 This file is what every dispatched agent on this project actually reads — dispatched subagents do not inherit the root `native_ai/CLAUDE.md`. Anything that needs to reach them has to be said here.
@@ -12,10 +12,10 @@ This file is what every dispatched agent on this project actually reads — disp
 ## Handoff order (starting point: Starscream's PRD)
 
 ```
-PRD.md (starscream, done) + APPFLOW.md / DESIGN-BRIEF.md / USER-STORIES.md (starscream, done)
+issuescout-PRD.md (starscream, done) + APPFLOW.md / DESIGN-BRIEF.md / issuescout-USER-STORIES.md (starscream, done)
   -> TRD.md / SCHEMA.md (alpha-trion, this file's companion docs, done)
   -> jazz (context packet — run before shockwave starts)
-  -> shockwave (writes specs/NNN-slug.md, one per phase-1 slice; cites TRD.md §3 for API shape, USER-STORIES.md for oracles)
+  -> shockwave (writes specs/NNN-slug.md, one per phase-1 slice; cites TRD.md §3 for API shape, issuescout-USER-STORIES.md for oracles)
   -> optimus-prime (spec review)
   -> ratchet Mode 1 (red)
   -> wheeljack (build — backend only, this cycle)
@@ -34,10 +34,10 @@ PRD.md (starscream, done) + APPFLOW.md / DESIGN-BRIEF.md / USER-STORIES.md (star
 |---|---|---|---|
 | teletraan-1 | Yes (already ran) | INTAKE | Standard, ran at intake — CLEAR. |
 | red-alert | Yes | INTAKE (done) + GREEN (post-build diff) | Mode 1 already ran — FAIL, 6 findings, now PRD §6/§9 requirements. Mode 2 must re-run on the actual diff, specifically re-checking the two-check auth gate, the IDOR/ownership check, CORS, RLS, and secret handling — these are exactly what Mode 1 flagged, so Mode 2 is confirming the fix landed, not a fresh audit. |
-| starscream | Yes (already ran) | PRD | Produced PRD.md + 3 companion docs. Done. |
+| starscream | Yes (already ran) | PRD | Produced issuescout-PRD.md + 3 companion docs. Done. |
 | alpha-trion | Yes (this run) | ASSEMBLY | This file + TRD.md + SCHEMA.md. |
 | jazz | Yes | Once, before shockwave | Repo already has a Next.js scaffold (`issuescout/`) — jazz's first job is confirming what's actually there vs. what the build plan assumes, before shockwave plans against stale assumptions. |
-| shockwave | Yes | SPEC | Must cite `TRD.md` §3 for every endpoint shape and `USER-STORIES.md` for every oracle — not invent either. See the build-plan note below: a detailed, human-approved design already exists and should anchor spec-writing, not be re-derived. |
+| shockwave | Yes | SPEC | Must cite `TRD.md` §3 for every endpoint shape and `issuescout-USER-STORIES.md` for every oracle — not invent either. See the build-plan note below: a detailed, human-approved design already exists and should anchor spec-writing, not be re-derived. |
 | optimus-prime | Yes | spec review | Standard gate; this project's specs will be unusually contract-heavy (zod schemas, harness state machine) — exactly where a missing-oracle or over-cap spec is likely, so this gate earns its cost here. |
 | ratchet | Yes | RED + GREEN | Standard, both modes. Mode 2 additionally reviews against `laws-of-ux` only if/when any UI-touching spec exists in this cycle (unlikely — see wheeljack note below). |
 | wheeljack | Yes | BUILD | **Backend only, this cycle.** Jonathan owns `app/api/`, `lib/server/`. Do not dispatch wheeljack against Ivaylo's slice (`app/` minus api, `components/`, `lib/client/`) — that's a separate branch, separate owner, not started, and out of scope for this assembly run. |
@@ -97,4 +97,4 @@ Local wiki path: none created yet for this project — `jazz` creates `wiki/cont
 
 ## Decisions logged this run
 
-See `log.md` in this project directory for the `[DECISION]` ADR entries corresponding to this assembly (team selection, skill propagation scope). If `log.md` does not yet exist, this assembly run creates it.
+See `issuescout-log.md` in this project directory for the `[DECISION]` ADR entries corresponding to this assembly (team selection, skill propagation scope). If `issuescout-log.md` does not yet exist, this assembly run creates it.
