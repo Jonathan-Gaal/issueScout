@@ -6,9 +6,9 @@
 **Author:** Starscream (PRD Writer)
 **Date:** 2026-10-08
 **Status:** Draft
-**Companion to:** `PRD.md` §6 (Feature Breakdown), §12 (Acceptance Criteria)
+**Companion to:** `issuescout-PRD.md` §6 (Feature Breakdown), §12 (Acceptance Criteria)
 
-> Full-tier project. One story per P0/P1 feature row in `PRD.md` §6. Acceptance criteria in EARS notation; every story with Crucial-Juncture or edge-case surface (per `~/.claude/skills/edge-case-triage/SKILL.md` — auth and data-integrity code skip the cheap-sweep gate and go straight to deeper enumeration) carries at least one Unwanted Behavior (IF/THEN) criterion.
+> Full-tier project. One story per P0/P1 feature row in `issuescout-PRD.md` §6. Acceptance criteria in EARS notation; every story with Crucial-Juncture or edge-case surface (per `~/.claude/skills/edge-case-triage/SKILL.md` — auth and data-integrity code skip the cheap-sweep gate and go straight to deeper enumeration) carries at least one Unwanted Behavior (IF/THEN) criterion.
 
 ---
 

@@ -18,7 +18,7 @@
   4. (reserve slot — not expected to be needed)
   5. (reserve slot — not expected to be needed)
 
-**References (≤3):** PRD.md §9 Observability (the binding requirement), TRD.md §4 (the "structurally prevented" design intent this spec implements).
+**References (≤3):** issuescout-PRD.md §9 Observability (the binding requirement), TRD.md §4 (the "structurally prevented" design intent this spec implements).
 
 [FORCES]
 1. A restrictive type that makes a violation a compile error > a runtime scrubber that depends on every call site remembering a convention.

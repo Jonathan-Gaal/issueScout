@@ -2,7 +2,7 @@
 
 ## For Ivaylo
 
-The backend's done and merged to `main` — API routes, auth, DB, all tested. This file is what to paste into your LLM's context before you start building the frontend. It's not a spec and won't build the app for you; it just keeps your LLM from guessing at things that are already fixed (API shapes, auth flow, the no-CORS-needed setup, the plain-text rendering rule) so your half plugs into mine without rework. The "Required reading" docs (`APPFLOW.md`, `DESIGN-BRIEF.md`, `USER-STORIES.md`) have the actual screens/flows/UX criteria — worth skimming yourself too, not just handing to the LLM.
+The backend's done and merged to `main` — API routes, auth, DB, all tested. This file is what to paste into your LLM's context before you start building the frontend. It's not a spec and won't build the app for you; it just keeps your LLM from guessing at things that are already fixed (API shapes, auth flow, the no-CORS-needed setup, the plain-text rendering rule) so your half plugs into mine without rework. The "Required reading" docs (`APPFLOW.md`, `DESIGN-BRIEF.md`, `issuescout-USER-STORIES.md`) have the actual screens/flows/UX criteria — worth skimming yourself too, not just handing to the LLM.
 
 If your LLM hits one of the "flag to the user" items at the bottom, that's a real decision for us to make together, not something to let it guess on.
 
@@ -47,7 +47,7 @@ GET  /api/runs/:id -> { run, report, actions: [] }
 ### Required reading before generating screens
 - `APPFLOW.md` — binding screen/branch logic. Route names are flexible; branches are not.
 - `DESIGN-BRIEF.md` — fixed report section order; status must always pair a text label with any color coding, never color alone.
-- `USER-STORIES.md` — acceptance criteria per feature, if a concrete test is needed.
+- `issuescout-USER-STORIES.md` — acceptance criteria per feature, if a concrete test is needed.
 
 ### Code style to match
 - Strict TypeScript, no `any`.

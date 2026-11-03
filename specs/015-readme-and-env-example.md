@@ -18,7 +18,7 @@
   4. (reserve slot — not expected to be needed)
   5. (reserve slot — not expected to be needed)
 
-**References (≤3):** `lib/server/config.ts` (spec 002, the source of truth `.env.example` must match), PRD.md §9 finding #6 / §11 / §12 / US-8 (the retention-stance escalation this spec must surface, not resolve), Build Spec §12 (the README requirement).
+**References (≤3):** `lib/server/config.ts` (spec 002, the source of truth `.env.example` must match), issuescout-PRD.md §9 finding #6 / §11 / §12 / US-8 (the retention-stance escalation this spec must surface, not resolve), Build Spec §12 (the README requirement).
 
 [FORCES]
 1. Grep-verified sync between `.env.example` and `config.ts` > hand-maintained parallel lists that silently drift.

@@ -2,7 +2,7 @@
 title: Phase 1 Build Plan — IssueScout
 category: entity
 tags: [plan, issuescout, phase-1, shockwave]
-source: PRD.md, USER-STORIES.md, TRD.md, SCHEMA.md, CLAUDE.md, ISSUESCOUT-BUILD-SPEC.md, /Users/jongaal/.claude/plans/what-can-u-see-wobbly-deer.md, wiki/context/codebase-map.md, wiki/context/session-state.md
+source: issuescout-PRD.md, issuescout-USER-STORIES.md, TRD.md, SCHEMA.md, CLAUDE.md, ISSUESCOUT-BUILD-SPEC.md, /Users/jongaal/.claude/plans/what-can-u-see-wobbly-deer.md, wiki/context/issuescout-codebase-map.md, wiki/context/session-state.md
 last_updated: 2026-10-08
 ---
 

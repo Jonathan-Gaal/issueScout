@@ -3,7 +3,7 @@
 **Author:** Alpha Trion (Project Assembly)
 **Date:** 2026-10-08
 **Status:** Approved (contract is fixed per Build Spec §0 — "treat sections 5, 6, 9 as a proposed contract unless an owner changes them")
-**Companion to:** `PRD.md` (all sections cited by number below), `SCHEMA.md`, `USER-STORIES.md`
+**Companion to:** `issuescout-PRD.md` (all sections cited by number below), `SCHEMA.md`, `issuescout-USER-STORIES.md`
 
 > Full-tier project. This document states *how* the system is built — architecture, authoritative interface contracts, non-functional approach, security model, technical risks. It does not restate PRD content; every requirement is cited back to a PRD section. `SCHEMA.md` holds the full data model. Individual `specs/NNN-slug.md` files hold file-level implementation detail — Shockwave cites this document's §3 rather than inventing a contract shape.
 >

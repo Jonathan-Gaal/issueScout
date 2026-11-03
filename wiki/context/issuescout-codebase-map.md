@@ -27,7 +27,7 @@ Jazz checks this file against what it actually finds in the tree (`.claude/agent
 
 Per the task's explicit instruction, this folder is noted but not modified or removed.
 
-`issuescout/` (sibling to `PRD.md` etc., i.e. `issueScout/issuescout/`) is a **stray, abandoned manual scaffold attempt**, not the real app structure:
+`issuescout/` (sibling to `issuescout-PRD.md` etc., i.e. `issueScout/issuescout/`) is a **stray, abandoned manual scaffold attempt**, not the real app structure:
 
 - Produced by a vanilla `npx create-next-app` run: Next.js 16.4.0, React 19.3.0, TypeScript, Tailwind v4, ESLint — all stock dependencies, nothing IssueScout-specific added (no zod, no `@supabase/supabase-js`, no `@anthropic-ai/sdk`, no `firebase-admin`).
 - `app/page.tsx` and `app/layout.tsx` are the unedited `create-next-app` template output (literally "To get started, edit the page.tsx file," stock Vercel/Next.js template links, default `public/*.svg` icons).

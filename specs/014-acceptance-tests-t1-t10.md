@@ -18,7 +18,7 @@
   4. `tests/harness/t9.t10.test.ts` — new (T9+T10 combined, both exercise validation/input-rejection).
   5. `tests/fixtures/` additions as needed for T1/T2/T3/T4/T6/T8/T9/T10 (counted as one unit — fixture data, not program logic).
 
-**References (≤3):** `ISSUESCOUT-BUILD-SPEC.md` §11 (the authoritative, verbatim pass-condition table this spec implements test-for-test), `lib/server/harness/runHarness.ts` (spec 008, the function under test), PRD.md §12 (the acceptance-criteria bullet this spec's oracle directly satisfies).
+**References (≤3):** `ISSUESCOUT-BUILD-SPEC.md` §11 (the authoritative, verbatim pass-condition table this spec implements test-for-test), `lib/server/harness/runHarness.ts` (spec 008, the function under test), issuescout-PRD.md §12 (the acceptance-criteria bullet this spec's oracle directly satisfies).
 
 [FORCES]
 1. Pre-committed expected output per Build Spec §11 > assertions retrofitted to whatever the harness currently produces.

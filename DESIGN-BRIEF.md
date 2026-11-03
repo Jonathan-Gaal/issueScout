@@ -6,7 +6,7 @@
 **Author:** Starscream (PRD Writer)
 **Date:** 2026-10-08
 **Status:** Draft
-**Companion to:** `PRD.md` §2 (Users & Personas), `.claude/skills/laws-of-ux/SKILL.md`
+**Companion to:** `issuescout-PRD.md` §2 (Users & Personas), `.claude/skills/laws-of-ux/SKILL.md`
 
 > Full-tier project. `laws-of-ux` is the universal heuristic checklist Ivaylo (frontend owner, not yet started) applies to every screen regardless of project; this brief is the IssueScout-specific complement — what this project should look and feel like, and the design-system choices specific to a triage report viewer, not general UX principles restated here.
 
@@ -22,7 +22,7 @@ What it should explicitly not feel like: a chat interface. This is not a convers
 
 ## 2. Target Audience
 
-Per `PRD.md` §2: the Maintainer persona (allowlisted operator) is a developer, comfortable reading GitHub issues and diffs natively — no need to explain GitHub conventions (labels, issue numbers, PR vs. issue) to this audience. Device/context: primarily desktop, at a keyboard, in a "working session" mindset (same context as reading a PR or triaging a backlog) — not a mobile/on-the-go use case. No additional audience detail beyond what PRD §2 already captures.
+Per `issuescout-PRD.md` §2: the Maintainer persona (allowlisted operator) is a developer, comfortable reading GitHub issues and diffs natively — no need to explain GitHub conventions (labels, issue numbers, PR vs. issue) to this audience. Device/context: primarily desktop, at a keyboard, in a "working session" mindset (same context as reading a PR or triaging a backlog) — not a mobile/on-the-go use case. No additional audience detail beyond what PRD §2 already captures.
 
 ## 3. Design Requirements
 
@@ -46,4 +46,4 @@ None conducted for this project — no user interviews, competitor analysis, or 
 
 ## What's deliberately not here
 
-No Timeline section — `PRD.md` §10 already covers phases/timing. No Budget section — not applicable to a two-person bootcamp build with no external design spend.
+No Timeline section — `issuescout-PRD.md` §10 already covers phases/timing. No Budget section — not applicable to a two-person bootcamp build with no external design spend.

@@ -22,7 +22,7 @@ This is a Crucial Juncture spec (auth) per the global shared definition — edge
   4. (reserve slot — not expected to be needed)
   5. (reserve slot — not expected to be needed)
 
-**References (≤3):** `lib/server/config.ts` (spec 002, `config.allowedUserEmails`), TRD.md §5 (the two-check model this spec implements), PRD.md §9 finding #1 / US-1 (the binding requirement and acceptance criteria).
+**References (≤3):** `lib/server/config.ts` (spec 002, `config.allowedUserEmails`), TRD.md §5 (the two-check model this spec implements), issuescout-PRD.md §9 finding #1 / US-1 (the binding requirement and acceptance criteria).
 
 [FORCES]
 1. Two separate functions, both required at every call site > one combined guard — this is non-negotiable per PRD §9 finding #1, not a style preference Shockwave is overriding Simplicity for.
